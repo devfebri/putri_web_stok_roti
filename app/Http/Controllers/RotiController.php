@@ -3,70 +3,17 @@
 namespace App\Http\Controllers;
 
 use App\Models\Roti;
+use App\Models\RotiPo;
 use Illuminate\Http\Request;
 
 class RotiController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
-    {
-        //
-    }
-
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        //
-    }
-
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
-    {
-        //
-    }
-
-    /**
-     * Display the specified resource.
-     */
-    public function show(Roti $roti)
-    {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Roti $roti)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, Roti $roti)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(Roti $roti)
-    {
-        //
-    }
+   
 
     // List semua roti
     public function indexApi()
     {
-        $roti = Roti::all();
+        $roti = Roti::where('status','!=',9)->get();
         return response()->json(['status' => true, 'data' => $roti]);
     }
 
@@ -83,14 +30,41 @@ class RotiController extends Controller
     // Tambah roti
     public function storeApi(Request $request)
     {
-        
-        $roti= new Roti();
+        // Validasi data dan file
+        // $request->validate([
+        //     'nama_roti' => 'required|string|max:255',
+        //     'rasa_roti' => 'required|string|max:255',
+        //     'harga_roti' => 'required|numeric',
+        //     'deskripsi_roti' => 'nullable|string',
+        //     'gambar_roti' => 'nullable|image|mimes:jpeg,png,jpg|max:2048', // max 2MB
+        // ]);
+
+        $roti = new Roti();
         $roti->nama_roti = $request->nama_roti;
+        $roti->rasa_roti = $request->rasa_roti;
         $roti->harga_roti = $request->harga_roti;
         $roti->deskripsi_roti = $request->deskripsi_roti;
-        $roti->save();
-        
-        return response()->json(['status' => true, 'message' => 'Data berhasil ditambah', 'data' => $roti], 201);   
+
+        // Proses upload file jika ada
+        if ($request->hasFile('gambar_roti')) {
+            $file = $request->file('gambar_roti');
+            $filename = time() . '_' . $file->getClientOriginalName();
+            $file->move(public_path('uploads/roti'), $filename);
+            $roti->gambar_roti = 'uploads/roti/' . $filename;
+        }
+
+        if ($roti->save()) {
+            return response()->json([
+                'status' => true,
+                'message' => 'Data berhasil ditambah',
+                'data' => $roti
+            ], 201);
+        } else {
+            return response()->json([
+                'status' => false,
+                'message' => 'Data gagal ditambah'
+            ], 500);
+        }
     }
 
     // Update roti
@@ -100,14 +74,31 @@ class RotiController extends Controller
         if (!$roti) {
             return response()->json(['status' => false, 'message' => 'Data tidak ditemukan'], 404);
         }
+
         $request->validate([
-            'nama' => 'sometimes|required|string|max:255',
-            'harga' => 'sometimes|required|numeric',
-            'stok' => 'sometimes|required|integer'
+            'nama_roti' => 'sometimes|required|string|max:255',
+            'rasa_roti' => 'sometimes|required|string|max:255',
+            'harga_roti' => 'sometimes|required|numeric',
+            'deskripsi_roti' => 'nullable|string',
+            'gambar_roti' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
         ]);
-        $roti->nama_roti = $request->nama_roti;
-        $roti->harga_roti = $request->harga_roti;
-        $roti->deskripsi_roti = $request->deskripsi_roti;
+
+        $roti->nama_roti = $request->nama_roti ?? $roti->nama_roti;
+        $roti->rasa_roti = $request->rasa_roti ?? $roti->rasa_roti;
+        $roti->harga_roti = $request->harga_roti ?? $roti->harga_roti;
+        $roti->deskripsi_roti = $request->deskripsi_roti ?? $roti->deskripsi_roti;
+
+        // Jika ada file gambar baru, hapus gambar lama lalu upload baru
+        if ($request->hasFile('gambar_roti')) {
+            if ($roti->gambar_roti && file_exists(public_path($roti->gambar_roti))) {
+                @unlink(public_path($roti->gambar_roti));
+            }
+            $file = $request->file('gambar_roti');
+            $filename = time() . '_' . $file->getClientOriginalName();
+            $file->move(public_path('uploads/roti'), $filename);
+            $roti->gambar_roti = 'uploads/roti/' . $filename;
+        }
+
         $roti->save();
         return response()->json(['status' => true, 'message' => 'Data berhasil diupdate', 'data' => $roti]);
     }
@@ -119,7 +110,11 @@ class RotiController extends Controller
         if (!$roti) {
             return response()->json(['status' => false, 'message' => 'Data tidak ditemukan'], 404);
         }
-        $roti->delete();
+        // Hapus gambar jika ada
+        // if ($roti->gambar_roti && file_exists(public_path($roti->gambar_roti))) {
+        //     @unlink(public_path($roti->gambar_roti));
+        // }
+        $roti->update(['status'=>9]);
         return response()->json(['status' => true, 'message' => 'Data berhasil dihapus']);
     }
 }

@@ -4,10 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class Roti extends Model
+class Waste extends Model
 {
-    //
-
     protected $fillable = [
         'status',
     ];

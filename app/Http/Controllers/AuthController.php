@@ -43,12 +43,13 @@ class AuthController extends Controller
                 'status' => true,
                 'message' => 'Login Berhasil',
                 'data' => $user
-            ]);
+            ],200);
         }
         return response()->json([
             'status' => true,
             'message' => 'Periksa Username dan Password anda'
         ],401);
+        
     }
 
     public function logout(Request $request) : RedirectResponse

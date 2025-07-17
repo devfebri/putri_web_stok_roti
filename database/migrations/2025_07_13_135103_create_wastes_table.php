@@ -11,15 +11,14 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('rotis', function (Blueprint $table) {
+        Schema::create('wastes', function (Blueprint $table) {
             $table->id();
-            $table->string('nama_roti', 200);
-            $table->string('rasa_roti', 100);
-            $table->text('deskripsi_roti')->nullable();
-            $table->string('harga_roti',50);
-            // $table->integer('stok_hari_ini');
-            // $table->date('tanggal_produksi');
-            $table->text('gambar_roti')->nullable();
+            $table->string('kode_waste',50);
+            $table->integer('rotipo_id');
+            $table->integer('user_id');
+            $table->integer('jumlah_waste');
+            $table->integer('jumlah_terjual');
+            $table->string('keterangan')->nullable();
             $table->tinyInteger('status')->default(0);
             $table->timestamps();
         });
@@ -30,6 +29,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('rotis');
+        Schema::dropIfExists('wastes');
     }
 };
