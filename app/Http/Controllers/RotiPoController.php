@@ -94,6 +94,7 @@ class RotiPoController extends Controller
             'tanggal_order' => 'required|date',
         ]);
 
+        $roti->kode_po = $request->kode_po ?? $roti->kode_po;
         $roti->roti_id = $request->roti_id ?? $roti->roti_id;
         $roti->user_id = $request->user_id ?? $roti->user_id;
         $roti->jumlah_po = $request->jumlah_po ?? $roti->jumlah_po;
