@@ -14,10 +14,34 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $data = new User();
-        $data->name = 'Kepala Toko';
-        $data->email = 'kepalatoko@gmail.com';
-        $data->username = 'kepalatoko';
-        $data->role = 'kepalatoko';
+        $data->name = 'Admin';
+        $data->email = 'admin@gmail.com';
+        $data->username = 'admin';
+        $data->role = 'admin';
+        $data->password = bcrypt('password');
+        $data->save();
+
+        $data = new User();
+        $data->name = 'Frontliner';
+        $data->email = 'frontliner@gmail.com';
+        $data->username = 'frontliner';
+        $data->role = 'frontliner';
+        $data->password = bcrypt('password');
+        $data->save();
+
+        $data = new User();
+        $data->name = 'Kepala Toko Kios';
+        $data->email = 'kepalatokokios@gmail.com';
+        $data->username = 'kepalatokokios';
+        $data->role = 'kepalatokokios';
+        $data->password = bcrypt('password');
+        $data->save();
+
+        $data = new User();
+        $data->name = 'Kepala Bakery';
+        $data->email = 'kepalabakery@gmail.com';
+        $data->username = 'kepalabakery';
+        $data->role = 'kepalabakery';
         $data->password = bcrypt('password');
         $data->save();
 
@@ -26,14 +50,6 @@ class DatabaseSeeder extends Seeder
         $data->email = 'pimpinan@gmail.com';
         $data->username = 'pimpinan';
         $data->role = 'pimpinan';
-        $data->password = bcrypt('password');
-        $data->save();
-
-        $data = new User();
-        $data->name = 'Baker';
-        $data->email = 'baker@gmail.com';
-        $data->username = 'baker';
-        $data->role = 'baker';
         $data->password = bcrypt('password');
         $data->save();
     }
