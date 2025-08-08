@@ -120,6 +120,9 @@ Route::prefix('frontliner')->middleware(['auth:sanctum', FrontlinerMiddleware::c
     Route::put('/transaksi/{id}', [TransaksiController::class, 'updateApi'])->name('transaksi_update'); // Update transaksi
     Route::delete('/transaksi/{id}', [TransaksiController::class, 'destroyApi'])->name('transaksi_destroy'); // Hapus transaksi
 
+    // Stok untuk Transaksi
+    Route::get('/stok', [StokHistoryController::class, 'indexForTransaksi'])->name('stok_for_transaksi'); // List stok untuk transaksi
+
     // Laporan untuk Frontliner (hanya Penjualan)
     Route::get('/laporan/penjualan', [LaporanController::class, 'penjualanReportApi'])->name('laporan_penjualan'); // Laporan penjualan
     Route::get('/laporan/dashboard-stats', [LaporanController::class, 'dashboardStatsApi'])->name('dashboard_stats'); // Dashboard stats
