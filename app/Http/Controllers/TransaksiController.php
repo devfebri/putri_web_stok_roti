@@ -236,13 +236,34 @@ class TransaksiController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Transaksi berhasil dihapus dan stok dikembalikan'
-            ]);
+                'message' => 'Transaksi berhasil dihapus dan stok dikembalikan'            ]);
         } catch (\Exception $e) {
             DB::rollback();
             return response()->json([
                 'success' => false,
                 'message' => 'Gagal menghapus transaksi: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get all available roti/products for transaction dropdown
+     */
+    public function getRotiApi(): JsonResponse
+    {
+        try {
+            $roti = Roti::select('id', 'nama_roti', 'rasa_roti', 'harga_roti', 'gambar_roti')
+                ->get();
+
+            return response()->json([
+                'success' => true,
+                'data' => $roti,
+                'message' => 'Data roti berhasil diambil'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mengambil data roti: ' . $e->getMessage()
             ], 500);
         }
     }

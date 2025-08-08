@@ -19,11 +19,25 @@ class StokHistoryController extends Controller
     public function indexForTransaksi()
     {
         try {
-            $roti = Transaksi::all();
+            $stokhistory = DB::table('stok_history')
+                ->select(
+                    'stok_history.id as stok_history_id',
+                    'stok_history.roti_id',
+                    'rotis.nama_roti', 
+                    'rotis.rasa_roti', 
+                    'rotis.harga_roti', 
+                    'stok_history.stok', 
+                    'rotis.gambar_roti', 
+                    'stok_history.stok_awal', 
+                    'stok_history.tanggal'
+                )
+                ->join('rotis', 'stok_history.roti_id', '=', 'rotis.id')
+                ->where('stok_history.stok', '>', 0)
+                ->get();
 
             return response()->json([
                 'success' => true,
-                'data' => $roti,
+                'data' => $stokhistory,
                 'message' => 'Data produk untuk transaksi berhasil diambil'
             ]);
         } catch (\Exception $e) {
