@@ -6,7 +6,7 @@ use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
-class PimpinanMiddleware
+class KepalaTokoKiosMiddleware
 {
     /**
      * Handle an incoming request.
@@ -17,10 +17,10 @@ class PimpinanMiddleware
     {
         // Check if user is authenticated via Sanctum
         if ($request->user()) {
-            if ($request->user()->role == 'pimpinan') {
+            if ($request->user()->role == 'kepalatokokios') {
                 return $next($request);
             } else {
-                return response()->json(['message' => 'Unauthorized. Pimpinan access required.'], 403);
+                return response()->json(['message' => 'Unauthorized. Kepala Toko Kios access required.'], 403);
             }
         } else {
             return response()->json(['message' => 'Unauthenticated.'], 401);

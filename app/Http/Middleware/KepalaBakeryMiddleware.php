@@ -4,10 +4,9 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
 
-class KepalaTokoMiddleware
+class KepalaBakeryMiddleware
 {
     /**
      * Handle an incoming request.
@@ -16,15 +15,15 @@ class KepalaTokoMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (Auth::check()) {
-            if (Auth::user()->role == 'kepalatoko') {
+        // Check if user is authenticated via Sanctum
+        if ($request->user()) {
+            if ($request->user()->role == 'kepalabakery') {
                 return $next($request);
             } else {
-                return redirect(url('login'));
+                return response()->json(['message' => 'Unauthorized. Kepala Bakery access required.'], 403);
             }
         } else {
-            Auth::logout();
-            return redirect(url('login'));
+            return response()->json(['message' => 'Unauthenticated.'], 401);
         }
     }
 }

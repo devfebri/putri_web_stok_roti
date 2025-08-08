@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Roti;
 use App\Models\RotiPo;
+use App\Models\StokHistory;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -158,9 +160,17 @@ class RotiPoController extends Controller
         $rotiPo->status = 2;
         $rotiPo->save();
 
+        $rotiHistory = new StokHistory();
+        $rotiHistory->roti_id = $rotiPo->roti_id;
+        $rotiHistory->stok = $rotiPo->jumlah_po;
+        $rotiHistory->stok_awal = $rotiPo->jumlah_po;
+        $rotiHistory->tanggal = Carbon::now();
+        $rotiHistory->save();
+
+
         return response()->json([
             'status' => true,
-            'message' => 'Roti PO berhasil dikirim',
+            'message' => 'Proses Po Selesai',
             'data' => $rotiPo
         ]);
     }

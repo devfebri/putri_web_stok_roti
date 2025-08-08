@@ -40,17 +40,21 @@ return [
             'driver' => 'session',
             'provider' => 'users',
         ],
+        'admin' => [
+            'driver' => 'session',
+            'provider' => 'admin',
+        ],
         'pimpinan' => [
             'driver' => 'session',
             'provider' => 'pimpinan',
         ],
-        'kepalatoko' => [
+        'kepalatokokios' => [
             'driver' => 'session',
-            'provider' => 'kepalatoko',
+            'provider' => 'kepalatokokios',
         ],
-        'baker' => [
+        'kepalabakery' => [
             'driver' => 'session',
-            'provider' => 'baker',
+            'provider' => 'kepalabakery',
         ],
     ],
 
@@ -76,15 +80,19 @@ return [
             'driver' => 'eloquent',
             'model' => env('AUTH_MODEL', App\Models\User::class),
         ],
+        'admin' => [
+            'driver' => 'eloquent',
+            'model' => App\Models\User::class,
+        ],
         'pimpinan' => [
             'driver' => 'eloquent',
             'model' => App\Models\User::class,
         ],
-        'kepalatoko' => [
+        'kepalatokokios' => [
             'driver' => 'eloquent',
             'model' => App\Models\User::class,
         ],
-        'baker' => [
+        'kepalabakery' => [
             'driver' => 'eloquent',
             'model' => App\Models\User::class,
         ],

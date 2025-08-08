@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Roti;
 use App\Models\RotiPo;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class RotiController extends Controller
 {
@@ -117,4 +118,5 @@ class RotiController extends Controller
         $roti->update(['status'=>9]);
         return response()->json(['status' => true, 'message' => 'Data berhasil dihapus']);
     }
+
 }

@@ -2,8 +2,9 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
-use App\Http\Middleware\BakerMiddleware;
-use App\Http\Middleware\KepalaTokoMiddleware;
+use App\Http\Middleware\FrontlinerMiddleware;
+use App\Http\Middleware\KepalaBakeryMiddleware;
+use App\Http\Middleware\KepalaTokoKiosMiddleware;
 use App\Http\Middleware\PimpinanMiddleware;
 use Illuminate\Support\Facades\Route;
 
@@ -19,10 +20,13 @@ Route::prefix('pimpinan')->middleware(PimpinanMiddleware::class)->name('pimpinan
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 });
 
-Route::prefix('baker')->middleware(BakerMiddleware::class)->name('baker_')->group(function () {
+Route::prefix('kepalabakery')->middleware(KepalaBakeryMiddleware::class)->name('kepalabakery_')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 });
 
-Route::prefix('kepalatoko')->middleware(KepalaTokoMiddleware::class)->name('kepalatoko_')->group(function () {
+Route::prefix('kepalatokokios')->middleware(KepalaTokoKiosMiddleware::class)->name('kepalatokokios_')->group(function () {
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+});
+Route::prefix('frontliner')->middleware(FrontlinerMiddleware::class)->name('frontliner_')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 });
