@@ -17,10 +17,10 @@ use Illuminate\Support\Facades\Route;
 
 Route::post('/proses_login_API', [AuthController::class, 'loginApi'])->name('proses_login');
 
-// Test PDF endpoint tanpa middleware untuk testing
-Route::get('/test/laporan/penjualan/pdf', [LaporanController::class, 'penjualanPdfExport'])->name('test_laporan_penjualan_pdf');
-Route::get('/test/laporan/waste/pdf', [LaporanController::class, 'wastePdfExport'])->name('test_laporan_waste_pdf');
-Route::get('/test/laporan/purchase-order/pdf', [LaporanController::class, 'purchaseOrderPdfExport'])->name('test_laporan_po_pdf');
+// PDF Routes - Public access (no authentication required)
+Route::get('/laporan/penjualan/pdf', [LaporanController::class, 'penjualanPdfExport'])->name('public_laporan_penjualan_pdf');
+Route::get('/laporan/waste/pdf', [LaporanController::class, 'wastePdfExport'])->name('public_laporan_waste_pdf');
+Route::get('/laporan/purchase-order/pdf', [LaporanController::class, 'purchaseOrderPdfExport'])->name('public_laporan_po_pdf');
 
 // User CRUD API routes (for admin management)
 Route::get('/user', [UserController::class, 'indexApi'])->name('users_index');
