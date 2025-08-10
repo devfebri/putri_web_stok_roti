@@ -662,7 +662,7 @@ class LaporanController extends Controller
             ];
 
             // Generate PDF
-            $pdf = Pdf::loadView('reports.purchase_order_pdf', [
+            $pdf = PDF::loadView('reports.purchase_order_pdf', [
                 'po_list' => $poData,
                 'summary' => $summary,
             ]);
