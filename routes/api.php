@@ -17,6 +17,11 @@ use Illuminate\Support\Facades\Route;
 
 Route::post('/proses_login_API', [AuthController::class, 'loginApi'])->name('proses_login');
 
+// Test PDF endpoint tanpa middleware untuk testing
+Route::get('/test/laporan/penjualan/pdf', [LaporanController::class, 'penjualanPdfExport'])->name('test_laporan_penjualan_pdf');
+Route::get('/test/laporan/waste/pdf', [LaporanController::class, 'wastePdfExport'])->name('test_laporan_waste_pdf');
+Route::get('/test/laporan/purchase-order/pdf', [LaporanController::class, 'purchaseOrderPdfExport'])->name('test_laporan_po_pdf');
+
 // User CRUD API routes (for admin management)
 Route::get('/user', [UserController::class, 'indexApi'])->name('users_index');
 Route::get('/user/{id}', [UserController::class, 'showApi'])->name('users_show');
@@ -54,8 +59,11 @@ Route::prefix('admin')->middleware(['auth:sanctum', AdminMiddleware::class])->na
 
     // Laporan
     Route::get('/laporan/waste', [LaporanController::class, 'wasteReportApi'])->name('laporan_waste'); // Laporan waste
+    Route::get('/laporan/waste/pdf', [LaporanController::class, 'wastePdfExport'])->name('laporan_waste_pdf'); // Export PDF waste
     Route::get('/laporan/purchase-order', [LaporanController::class, 'purchaseOrderReportApi'])->name('laporan_po'); // Laporan PO
+    Route::get('/laporan/purchase-order/pdf', [LaporanController::class, 'purchaseOrderPdfExport'])->name('laporan_po_pdf'); // Export PDF PO
     Route::get('/laporan/penjualan', [LaporanController::class, 'penjualanReportApi'])->name('laporan_penjualan'); // Laporan penjualan
+    Route::get('/laporan/penjualan/pdf', [LaporanController::class, 'penjualanPdfExport'])->name('laporan_penjualan_pdf'); // Export PDF penjualan
     Route::get('/laporan/dashboard-stats', [LaporanController::class, 'dashboardStatsApi'])->name('dashboard_stats'); // Dashboard stats
     Route::get('/laporan/debug-po', [LaporanController::class, 'debugPurchaseOrderApi'])->name('debug_po'); // Debug PO
 });
@@ -63,8 +71,11 @@ Route::prefix('admin')->middleware(['auth:sanctum', AdminMiddleware::class])->na
 Route::prefix('pimpinan')->middleware(['auth:sanctum', PimpinanMiddleware::class])->name('pimpinan_')->group(function () {
     // Laporan untuk Pimpinan (akses semua jenis laporan untuk overview)
     Route::get('/laporan/waste', [LaporanController::class, 'wasteReportApi'])->name('laporan_waste'); // Laporan waste
+    Route::get('/laporan/waste/pdf', [LaporanController::class, 'wastePdfExport'])->name('laporan_waste_pdf'); // Export PDF waste
     Route::get('/laporan/purchase-order', [LaporanController::class, 'purchaseOrderReportApi'])->name('laporan_po'); // Laporan PO
+    Route::get('/laporan/purchase-order/pdf', [LaporanController::class, 'purchaseOrderPdfExport'])->name('laporan_po_pdf'); // Export PDF PO
     Route::get('/laporan/penjualan', [LaporanController::class, 'penjualanReportApi'])->name('laporan_penjualan'); // Laporan penjualan
+    Route::get('/laporan/penjualan/pdf', [LaporanController::class, 'penjualanPdfExport'])->name('laporan_penjualan_pdf'); // Export PDF penjualan
     Route::get('/laporan/dashboard-stats', [LaporanController::class, 'dashboardStatsApi'])->name('dashboard_stats'); // Dashboard stats
 });
 
@@ -81,6 +92,7 @@ Route::prefix('kepalabakery')->middleware(['auth:sanctum', KepalaBakeryMiddlewar
     
     // Laporan untuk Kepala Bakery (hanya Purchase Order)
     Route::get('/laporan/purchase-order', [LaporanController::class, 'purchaseOrderReportApi'])->name('laporan_po'); // Laporan PO
+    Route::get('/laporan/purchase-order/pdf', [LaporanController::class, 'purchaseOrderPdfExport'])->name('laporan_po_pdf'); // Export PDF PO
     Route::get('/laporan/dashboard-stats', [LaporanController::class, 'dashboardStatsApi'])->name('dashboard_stats'); // Dashboard stats
 
 });
@@ -105,8 +117,11 @@ Route::prefix('kepalatokokios')->middleware(['auth:sanctum', KepalaTokoKiosMiddl
 
     // Laporan
     Route::get('/laporan/waste', [LaporanController::class, 'wasteReportApi'])->name('laporan_waste'); // Laporan waste
+    Route::get('/laporan/waste/pdf', [LaporanController::class, 'wastePdfExport'])->name('laporan_waste_pdf'); // Export PDF waste
     Route::get('/laporan/purchase-order', [LaporanController::class, 'purchaseOrderReportApi'])->name('laporan_po'); // Laporan PO
+    Route::get('/laporan/purchase-order/pdf', [LaporanController::class, 'purchaseOrderPdfExport'])->name('laporan_po_pdf'); // Export PDF PO
     Route::get('/laporan/penjualan', [LaporanController::class, 'penjualanReportApi'])->name('laporan_penjualan'); // Laporan penjualan
+    Route::get('/laporan/penjualan/pdf', [LaporanController::class, 'penjualanPdfExport'])->name('laporan_penjualan_pdf'); // Export PDF penjualan
     Route::get('/laporan/dashboard-stats', [LaporanController::class, 'dashboardStatsApi'])->name('dashboard_stats'); // Dashboard stats
 
 });
@@ -125,5 +140,6 @@ Route::prefix('frontliner')->middleware(['auth:sanctum', FrontlinerMiddleware::c
 
     // Laporan untuk Frontliner (hanya Penjualan)
     Route::get('/laporan/penjualan', [LaporanController::class, 'penjualanReportApi'])->name('laporan_penjualan'); // Laporan penjualan
+    Route::get('/laporan/penjualan/pdf', [LaporanController::class, 'penjualanPdfExport'])->name('laporan_penjualan_pdf'); // Export PDF penjualan
     Route::get('/laporan/dashboard-stats', [LaporanController::class, 'dashboardStatsApi'])->name('dashboard_stats'); // Dashboard stats
 });

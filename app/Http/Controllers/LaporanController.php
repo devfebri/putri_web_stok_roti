@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class LaporanController extends Controller
 {
@@ -375,5 +376,312 @@ class LaporanController extends Controller
                 ],
             ]
         ]);
+    }
+
+    public function penjualanPdfExport(Request $request)
+    {
+        try {
+            $request->validate([
+                'periode' => 'required|in:harian,mingguan,bulanan',
+                'tanggal_mulai' => 'nullable|date',
+                'tanggal_selesai' => 'nullable|date',
+                'token' => 'nullable|string', // Token dari query parameter
+            ]);
+
+            // Jika token ada di query parameter, set ke header
+            $token = $request->get('token');
+            if ($token) {
+                $request->headers->set('Authorization', 'Bearer ' . $token);
+            }
+
+            $periode = $request->periode;
+            $tanggalMulai = $request->tanggal_mulai;
+            $tanggalSelesai = $request->tanggal_selesai;
+
+            // Set default tanggal berdasarkan periode jika tidak ada
+            if (!$tanggalMulai || !$tanggalSelesai) {
+                switch ($periode) {
+                    case 'harian':
+                        $tanggalMulai = Carbon::today()->toDateString();
+                        $tanggalSelesai = Carbon::today()->toDateString();
+                        break;
+                    case 'mingguan':
+                        $tanggalMulai = Carbon::now()->startOfWeek()->toDateString();
+                        $tanggalSelesai = Carbon::now()->endOfWeek()->toDateString();
+                        break;
+                    case 'bulanan':
+                        $tanggalMulai = Carbon::now()->startOfMonth()->toDateString();
+                        $tanggalSelesai = Carbon::now()->endOfMonth()->toDateString();
+                        break;
+                }
+            }
+
+            // Query laporan penjualan (menggunakan tabel transaksi)
+            $penjualanData = DB::table('transaksi')
+                ->select(
+                    'transaksi.id',
+                    'transaksi.nama_customer',
+                    'transaksi.jumlah',
+                    'transaksi.harga_satuan',
+                    'transaksi.total_harga',
+                    'transaksi.tanggal_transaksi',
+                    'transaksi.created_at',
+                    'users.name as user_name',
+                    'rotis.nama_roti',
+                    'rotis.rasa_roti'
+                )
+                ->join('users', 'users.id', '=', 'transaksi.user_id')
+                ->join('rotis', 'rotis.id', '=', 'transaksi.roti_id')
+                ->whereBetween('transaksi.tanggal_transaksi', [$tanggalMulai, $tanggalSelesai])
+                ->orderBy('transaksi.created_at', 'desc')
+                ->get();
+
+            // Summary data
+            $summary = [
+                'total_penjualan' => $penjualanData->sum('total_harga'),
+                'total_item_terjual' => $penjualanData->sum('jumlah'),
+                'jumlah_transaksi' => $penjualanData->count(),
+                'rata_rata_per_transaksi' => $penjualanData->count() > 0 ? $penjualanData->sum('total_harga') / $penjualanData->count() : 0,
+                'periode' => $periode,
+                'periode_text' => $this->getPeriodeText($periode, $tanggalMulai, $tanggalSelesai),
+                'tanggal_mulai' => Carbon::parse($tanggalMulai)->format('d/m/Y'),
+                'tanggal_selesai' => Carbon::parse($tanggalSelesai)->format('d/m/Y'),
+            ];
+
+            // Generate PDF
+            $pdf = Pdf::loadView('reports.penjualan_pdf', [
+                'penjualan_list' => $penjualanData,
+                'summary' => $summary,
+            ]);
+
+            // Set paper size dan orientasi
+            $pdf->setPaper('A4', 'portrait');
+
+            // Generate filename
+            $filename = 'laporan-penjualan-' . $periode . '-' . date('Y-m-d-H-i-s') . '.pdf';
+
+            // Return PDF as download
+            return $pdf->download($filename);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Gagal generate PDF: ' . $e->getMessage(),
+                'error' => $e->getTraceAsString()
+            ], 500);
+        }
+    }
+
+    private function getPeriodeText($periode, $tanggalMulai, $tanggalSelesai)
+    {
+        $mulai = Carbon::parse($tanggalMulai);
+        $selesai = Carbon::parse($tanggalSelesai);
+
+        switch ($periode) {
+            case 'harian':
+                return 'Laporan Harian - ' . $mulai->format('d F Y');
+            case 'mingguan':
+                return 'Laporan Mingguan - ' . $mulai->format('d F Y') . ' s.d ' . $selesai->format('d F Y');
+            case 'bulanan':
+                return 'Laporan Bulanan - ' . $mulai->format('F Y');
+            default:
+                return 'Laporan Penjualan';
+        }
+    }
+
+    public function wastePdfExport(Request $request)
+    {
+        try {
+            $request->validate([
+                'periode' => 'required|in:harian,mingguan,bulanan',
+                'tanggal_mulai' => 'nullable|date',
+                'tanggal_selesai' => 'nullable|date',
+                'token' => 'nullable|string',
+            ]);
+
+            // Jika token ada di query parameter, set ke header
+            $token = $request->get('token');
+            if ($token) {
+                $request->headers->set('Authorization', 'Bearer ' . $token);
+            }
+
+            $periode = $request->periode;
+            $tanggalMulai = $request->tanggal_mulai;
+            $tanggalSelesai = $request->tanggal_selesai;
+
+            // Set default tanggal berdasarkan periode jika tidak ada
+            if (!$tanggalMulai || !$tanggalSelesai) {
+                switch ($periode) {
+                    case 'harian':
+                        $tanggalMulai = Carbon::today()->toDateString();
+                        $tanggalSelesai = Carbon::today()->toDateString();
+                        break;
+                    case 'mingguan':
+                        $tanggalMulai = Carbon::now()->startOfWeek()->toDateString();
+                        $tanggalSelesai = Carbon::now()->endOfWeek()->toDateString();
+                        break;
+                    case 'bulanan':
+                        $tanggalMulai = Carbon::now()->startOfMonth()->toDateString();
+                        $tanggalSelesai = Carbon::now()->endOfMonth()->toDateString();
+                        break;
+                }
+            }
+
+            // Query laporan waste
+            $wasteData = DB::table('wastes')
+                ->select(
+                    'wastes.id',
+                    'wastes.kode_waste',
+                    'wastes.jumlah_waste',
+                    'wastes.tanggal_expired',
+                    'wastes.keterangan',
+                    'wastes.created_at',
+                    'users.name as user_name',
+                    'rotis.nama_roti',
+                    'rotis.rasa_roti',
+                    'rotis.harga_roti',
+                    'stok_history.tanggal as tanggal_stok',
+                    DB::raw('(rotis.harga_roti * wastes.jumlah_waste) as total_kerugian')
+                )
+                ->join('users', 'users.id', '=', 'wastes.user_id')
+                ->join('stok_history', 'stok_history.id', '=', 'wastes.stok_history_id')
+                ->join('rotis', 'rotis.id', '=', 'stok_history.roti_id')
+                ->where('wastes.status', '!=', 9)
+                ->whereBetween('stok_history.tanggal', [$tanggalMulai, $tanggalSelesai])
+                ->orderBy('wastes.created_at', 'desc')
+                ->get();
+
+            // Summary data
+            $summary = [
+                'total_item_waste' => $wasteData->sum('jumlah_waste'),
+                'total_kerugian' => $wasteData->sum('total_kerugian'),
+                'jumlah_transaksi' => $wasteData->count(),
+                'periode' => $periode,
+                'periode_text' => $this->getPeriodeText($periode, $tanggalMulai, $tanggalSelesai),
+                'tanggal_mulai' => Carbon::parse($tanggalMulai)->format('d/m/Y'),
+                'tanggal_selesai' => Carbon::parse($tanggalSelesai)->format('d/m/Y'),
+            ];
+
+            // Generate PDF
+            $pdf = Pdf::loadView('reports.waste_pdf', [
+                'waste_list' => $wasteData,
+                'summary' => $summary,
+            ]);
+
+            // Set paper size dan orientasi
+            $pdf->setPaper('A4', 'landscape'); // Landscape untuk tabel yang lebih lebar
+
+            // Generate filename
+            $filename = 'laporan-waste-' . $periode . '-' . date('Y-m-d-H-i-s') . '.pdf';
+
+            // Return PDF as download
+            return $pdf->download($filename);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Gagal generate PDF Waste: ' . $e->getMessage(),
+                'error' => $e->getTraceAsString()
+            ], 500);
+        }
+    }
+
+    public function purchaseOrderPdfExport(Request $request)
+    {
+        try {
+            $request->validate([
+                'periode' => 'required|in:harian,mingguan,bulanan',
+                'tanggal_mulai' => 'nullable|date',
+                'tanggal_selesai' => 'nullable|date',
+                'token' => 'nullable|string',
+            ]);
+
+            // Jika token ada di query parameter, set ke header
+            $token = $request->get('token');
+            if ($token) {
+                $request->headers->set('Authorization', 'Bearer ' . $token);
+            }
+
+            $periode = $request->periode;
+            $tanggalMulai = $request->tanggal_mulai;
+            $tanggalSelesai = $request->tanggal_selesai;
+
+            // Set default tanggal berdasarkan periode jika tidak ada
+            if (!$tanggalMulai || !$tanggalSelesai) {
+                switch ($periode) {
+                    case 'harian':
+                        $tanggalMulai = Carbon::today()->toDateString();
+                        $tanggalSelesai = Carbon::today()->toDateString();
+                        break;
+                    case 'mingguan':
+                        $tanggalMulai = Carbon::now()->startOfWeek()->toDateString();
+                        $tanggalSelesai = Carbon::now()->endOfWeek()->toDateString();
+                        break;
+                    case 'bulanan':
+                        $tanggalMulai = Carbon::now()->startOfMonth()->toDateString();
+                        $tanggalSelesai = Carbon::now()->endOfMonth()->toDateString();
+                        break;
+                }
+            }
+
+            // Query laporan purchase order
+            $poData = DB::table('roti_pos')
+                ->select(
+                    'roti_pos.id',
+                    'roti_pos.kode_po',
+                    'roti_pos.jumlah_po',
+                    'roti_pos.status',
+                    'roti_pos.tanggal_order',
+                    'roti_pos.deskripsi',
+                    'roti_pos.created_at',
+                    'users.name as user_name',
+                    'rotis.nama_roti',
+                    'rotis.rasa_roti',
+                    'rotis.harga_roti',
+                    DB::raw('(rotis.harga_roti * roti_pos.jumlah_po) as total_nilai')
+                )
+                ->join('users', 'users.id', '=', 'roti_pos.user_id')
+                ->join('rotis', 'rotis.id', '=', 'roti_pos.roti_id')
+                ->where('roti_pos.status', '!=', 9)
+                ->whereBetween('roti_pos.tanggal_order', [$tanggalMulai, $tanggalSelesai])
+                ->orderBy('roti_pos.created_at', 'desc')
+                ->get();
+
+            // Summary data
+            $summary = [
+                'total_item_po' => $poData->sum('jumlah_po'),
+                'total_nilai' => $poData->sum('total_nilai'),
+                'jumlah_po' => $poData->count(),
+                'po_pending' => $poData->where('status', 0)->count(),
+                'po_delivery' => $poData->where('status', 1)->count(),
+                'po_selesai' => $poData->where('status', 2)->count(),
+                'periode' => $periode,
+                'periode_text' => $this->getPeriodeText($periode, $tanggalMulai, $tanggalSelesai),
+                'tanggal_mulai' => Carbon::parse($tanggalMulai)->format('d/m/Y'),
+                'tanggal_selesai' => Carbon::parse($tanggalSelesai)->format('d/m/Y'),
+            ];
+
+            // Generate PDF
+            $pdf = Pdf::loadView('reports.purchase_order_pdf', [
+                'po_list' => $poData,
+                'summary' => $summary,
+            ]);
+
+            // Set paper size dan orientasi
+            $pdf->setPaper('A4', 'landscape'); // Landscape untuk tabel yang lebih lebar
+
+            // Generate filename
+            $filename = 'laporan-purchase-order-' . $periode . '-' . date('Y-m-d-H-i-s') . '.pdf';
+
+            // Return PDF as download
+            return $pdf->download($filename);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Gagal generate PDF Purchase Order: ' . $e->getMessage(),
+                'error' => $e->getTraceAsString()
+            ], 500);
+        }
     }
 }
