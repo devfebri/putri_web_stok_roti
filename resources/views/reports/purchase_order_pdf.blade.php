@@ -139,9 +139,14 @@
 </head>
 <body>
     <div class="header">
-        <h1>Laporan Purchase Order</h1>
-        <h2>{{ $summary['periode_text'] ?? 'Laporan Periode' }}</h2>
-        <p>{{ $summary['tanggal_mulai'] }} - {{ $summary['tanggal_selesai'] }}</p>
+        <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 20px;">
+            <img src="{{ public_path('img/logo.png') }}" alt="Logo" style="height: 60px; margin-right: 20px;">
+            <div style="text-align: left;">
+                <h1 style="margin: 0; color: #333; font-size: 24px;">Laporan Purchase Order</h1>
+                <h2 style="margin: 5px 0; color: #666; font-size: 16px; font-weight: normal;">{{ $summary['periode_text'] ?? 'Laporan Periode' }}</h2>
+                <p style="margin: 5px 0;">{{ $summary['tanggal_mulai'] }} - {{ $summary['tanggal_selesai'] }}</p>
+            </div>
+        </div>
     </div>
 
     <div class="info-section">

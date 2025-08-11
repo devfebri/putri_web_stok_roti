@@ -17,6 +17,49 @@ use Illuminate\Support\Facades\Route;
 
 Route::post('/proses_login_API', [AuthController::class, 'loginApi'])->name('proses_login');
 
+// Test endpoint untuk debug data
+Route::get('/test-laporan-data', function () {
+    try {
+        echo "<h2>Test Data Laporan</h2>";
+        
+        // Test dengan periode seminggu terakhir
+        $tanggal_mulai = date('Y-m-d', strtotime('-7 days'));
+        $tanggal_selesai = date('Y-m-d');
+        
+        echo "<h3>Periode Test: " . $tanggal_mulai . " - " . $tanggal_selesai . "</h3>";
+        
+        // Test data penjualan
+        $penjualanData = \Illuminate\Support\Facades\DB::table('transaksi')
+            ->select(
+                'transaksi.id',
+                'transaksi.nama_customer',
+                'transaksi.jumlah',
+                'transaksi.harga_satuan',
+                'transaksi.total_harga',
+                'transaksi.tanggal_transaksi',
+                'transaksi.created_at',
+                'users.name as user_name',
+                'rotis.nama_roti',
+                'rotis.rasa_roti'
+            )
+            ->join('users', 'users.id', '=', 'transaksi.user_id')
+            ->join('rotis', 'rotis.id', '=', 'transaksi.roti_id')
+            ->whereBetween('transaksi.tanggal_transaksi', [$tanggal_mulai, $tanggal_selesai])
+            ->orderBy('transaksi.created_at', 'desc')
+            ->get();
+            
+        echo "<h3>Data Penjualan (" . count($penjualanData) . " records):</h3>";
+        foreach($penjualanData as $data) {
+            echo "- " . $data->nama_customer . " | " . $data->nama_roti . " | Qty: " . $data->jumlah . " | Total: Rp " . number_format($data->total_harga) . " | Tanggal: " . $data->tanggal_transaksi . "<br>";
+        }
+        
+        return "Test selesai";
+        
+    } catch (\Exception $e) {
+        return "Error: " . $e->getMessage() . "<br>Stack trace: " . $e->getTraceAsString();
+    }
+});
+
 // PDF Routes - Public access (no authentication required)
 Route::get('/laporan/penjualan/pdf', [LaporanController::class, 'penjualanPdfExport'])->name('public_laporan_penjualan_pdf');
 Route::get('/laporan/waste/pdf', [LaporanController::class, 'wastePdfExport'])->name('public_laporan_waste_pdf');
