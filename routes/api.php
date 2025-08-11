@@ -620,6 +620,7 @@ Route::prefix('kepalatokokios')->middleware(['auth:sanctum', KepalaTokoKiosMiddl
     //CRUD Roti PO
     Route::get('/rotipo', [RotiPoController::class, 'indexApi'])->name('rotipo_index');      // List semua roti
     Route::get('/getroti',[RotiPoController::class, 'getRotiApi'])->name('rotipo_getroti'); // List semua roti untuk dropdown
+    Route::get('/getfrontliners', [RotiPoController::class, 'getFrontlinersApi'])->name('rotipo_getfrontliners'); // List frontliners untuk dropdown
     Route::get('/rotipo/{id}', [RotiPoController::class, 'showApi'])->name('rotipo_show');   // Detail roti
     Route::post('/rotipo', [RotiPoController::class, 'storeApi'])->name('rotipo_store');     // Tambah roti
     Route::put('/rotipo/{id}', [RotiPoController::class, 'updateApi'])->name('rotipo_update'); // Update roti

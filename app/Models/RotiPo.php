@@ -8,5 +8,6 @@ class RotiPo extends Model
 {
     protected $fillable = [
         'status',
+        'frontliner_id',
     ];
 }
