@@ -320,6 +320,127 @@ Route::get('/check-production-system', function () {
     }
 });
 
+// Test kepala bakery API endpoint
+Route::get('/test-kepalabakery-api', function () {
+    try {
+        echo "<h2>Test Kepala Bakery API Endpoint</h2>";
+        
+        // Simulate API call to purchase order endpoint
+        $periode = 'harian';
+        $tanggalMulai = \Carbon\Carbon::today()->toDateString();
+        $tanggalSelesai = \Carbon\Carbon::today()->toDateString();
+        
+        echo "<p>Testing with periode: $periode</p>";
+        echo "<p>Date range: $tanggalMulai to $tanggalSelesai</p>";
+        
+        // Mimic the exact query from LaporanController
+        $poData = \Illuminate\Support\Facades\DB::table('roti_pos')
+            ->select(
+                'roti_pos.id',
+                'roti_pos.kode_po',
+                'roti_pos.jumlah_po',
+                'roti_pos.status',
+                'roti_pos.tanggal_order',
+                'roti_pos.deskripsi',
+                'roti_pos.created_at',
+                'users.name as user_name',
+                'rotis.nama_roti',
+                'rotis.rasa_roti',
+                'rotis.harga_roti',
+                \Illuminate\Support\Facades\DB::raw('(rotis.harga_roti * roti_pos.jumlah_po) as total_nilai')
+            )
+            ->join('users', 'users.id', '=', 'roti_pos.user_id')
+            ->join('rotis', 'rotis.id', '=', 'roti_pos.roti_id')
+            ->where('roti_pos.status', '!=', 9)
+            ->whereBetween('roti_pos.tanggal_order', [$tanggalMulai, $tanggalSelesai])
+            ->orderBy('roti_pos.created_at', 'desc')
+            ->get();
+
+        // Summary data
+        $summary = [
+            'total_item_po' => $poData->sum('jumlah_po'),
+            'total_nilai' => $poData->sum('total_nilai'),
+            'jumlah_po' => $poData->count(),
+            'po_pending' => $poData->where('status', 0)->count(),
+            'po_delivery' => $poData->where('status', 1)->count(),
+            'po_selesai' => $poData->where('status', 2)->count(),
+            'periode' => $periode,
+            'tanggal_mulai' => $tanggalMulai,
+            'tanggal_selesai' => $tanggalSelesai,
+        ];
+
+        echo "<h3>Query Results:</h3>";
+        echo "<p>Total records found: " . $poData->count() . "</p>";
+        echo "<h4>Summary:</h4>";
+        echo "<pre>" . json_encode($summary, JSON_PRETTY_PRINT) . "</pre>";
+        
+        if ($poData->count() > 0) {
+            echo "<h4>Sample Data (first 3 records):</h4>";
+            echo "<pre>" . json_encode($poData->take(3), JSON_PRETTY_PRINT) . "</pre>";
+        }
+        
+        return "";
+        
+    } catch (\Exception $e) {
+        echo "<p>ERROR: " . $e->getMessage() . "</p>";
+        echo "<p>Stack trace: " . $e->getTraceAsString() . "</p>";
+        return "";
+    }
+});
+
+// Debug kepala bakery routes
+Route::get('/debug-kepalabakery-po', function () {
+    try {
+        echo "<h2>Debug Kepala Bakery Purchase Order</h2>";
+        
+        // Test query roti_pos
+        $rotiPos = \Illuminate\Support\Facades\DB::table('roti_pos')
+            ->select('roti_pos.*')
+            ->limit(5)
+            ->get();
+            
+        echo "<h3>Sample roti_pos data:</h3>";
+        echo "<pre>" . json_encode($rotiPos, JSON_PRETTY_PRINT) . "</pre>";
+        
+        // Test full query with joins
+        $fullQuery = \Illuminate\Support\Facades\DB::table('roti_pos')
+            ->select(
+                'roti_pos.id',
+                'roti_pos.kode_po',
+                'roti_pos.jumlah_po',
+                'roti_pos.status',
+                'roti_pos.tanggal_order',
+                'roti_pos.deskripsi',
+                'roti_pos.created_at',
+                'users.name as user_name',
+                'rotis.nama_roti',
+                'rotis.rasa_roti',
+                'rotis.harga_roti'
+            )
+            ->join('users', 'users.id', '=', 'roti_pos.user_id')
+            ->join('rotis', 'rotis.id', '=', 'roti_pos.roti_id')
+            ->where('roti_pos.status', '!=', 9)
+            ->limit(3)
+            ->get();
+            
+        echo "<h3>Full query with joins:</h3>";
+        echo "<pre>" . json_encode($fullQuery, JSON_PRETTY_PRINT) . "</pre>";
+        
+        // Test today's data
+        $today = \Carbon\Carbon::today()->toDateString();
+        $todayData = \Illuminate\Support\Facades\DB::table('roti_pos')
+            ->whereDate('tanggal_order', $today)
+            ->count();
+            
+        echo "<h3>Today's PO count ($today): $todayData</h3>";
+        
+        return "";
+        
+    } catch (\Exception $e) {
+        return "Error: " . $e->getMessage();
+    }
+});
+
 // Check production data
 Route::get('/check-production-data', function () {
     try {
