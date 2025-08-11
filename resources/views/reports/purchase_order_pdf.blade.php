@@ -149,52 +149,6 @@
         </div>
     </div>
 
-    <div class="info-section">
-        <div class="info-row">
-            <span class="info-label">Tanggal Cetak:</span>
-            <span>{{ date('d/m/Y H:i:s') }}</span>
-        </div>
-        <div class="info-row">
-            <span class="info-label">Periode:</span>
-            <span>{{ ucfirst($summary['periode']) }}</span>
-        </div>
-    </div>
-
-    <div class="summary-section">
-        <h3 style="margin-top: 0;">Ringkasan Purchase Order</h3>
-        <div class="summary-grid">
-            <div class="summary-item">
-                <span class="summary-label">Total PO:</span>
-                <span class="summary-value">{{ number_format($summary['jumlah_po']) }}</span>
-            </div>
-            <div class="summary-item">
-                <span class="summary-label">Total Item:</span>
-                <span class="summary-value">{{ number_format($summary['total_item_po']) }}</span>
-            </div>
-            <div class="summary-item">
-                <span class="summary-label">Total Nilai:</span>
-                <span class="summary-value currency">Rp {{ number_format($summary['total_nilai'], 0, ',', '.') }}</span>
-            </div>
-        </div>
-    </div>
-
-    <div class="status-section">
-        <h3 style="margin-top: 0;">Status Purchase Order</h3>
-        <div class="summary-grid">
-            <div class="summary-item">
-                <span class="summary-label">Pending:</span>
-                <span class="summary-value">{{ number_format($summary['po_pending']) }}</span>
-            </div>
-            <div class="summary-item">
-                <span class="summary-label">Delivery:</span>
-                <span class="summary-value">{{ number_format($summary['po_delivery']) }}</span>
-            </div>
-            <div class="summary-item">
-                <span class="summary-label">Selesai:</span>
-                <span class="summary-value">{{ number_format($summary['po_selesai']) }}</span>
-            </div>
-        </div>
-    </div>
 
     @if(count($po_list) > 0)
     <h3>Detail Purchase Order</h3>

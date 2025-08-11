@@ -53,6 +53,64 @@ Route::get('/test-laporan-data', function () {
             echo "- " . $data->nama_customer . " | " . $data->nama_roti . " | Qty: " . $data->jumlah . " | Total: Rp " . number_format($data->total_harga) . " | Tanggal: " . $data->tanggal_transaksi . "<br>";
         }
         
+        // Test data waste dengan berbagai kondisi
+        echo "<h3>Debug Data Waste:</h3>";
+        $allWaste = \Illuminate\Support\Facades\DB::table('wastes')->get();
+        echo "Total waste records: " . count($allWaste) . "<br>";
+        
+        if(count($allWaste) > 0) {
+            $firstWaste = $allWaste->first();
+            echo "Sample waste data:<br>";
+            echo "- ID: " . $firstWaste->id . "<br>";
+            echo "- Tanggal Expired: " . $firstWaste->tanggal_expired . "<br>";
+            echo "- Roti ID: " . $firstWaste->roti_id . "<br>";
+            echo "- User ID: " . $firstWaste->user_id . "<br>";
+            echo "- Jumlah: " . $firstWaste->jumlah_waste . "<br>";
+        }
+        
+        // Test query waste seperti di controller
+        $wasteData = \Illuminate\Support\Facades\DB::table('wastes')
+            ->select(
+                'wastes.*',
+                'users.name as user_name',
+                'rotis.nama_roti',
+                'rotis.rasa_roti',
+                'rotis.harga_roti',
+                \Illuminate\Support\Facades\DB::raw('(rotis.harga_roti * wastes.jumlah_waste) as total_kerugian')
+            )
+            ->join('users', 'users.id', '=', 'wastes.user_id')
+            ->join('rotis', 'rotis.id', '=', 'wastes.roti_id')
+            ->whereBetween('wastes.tanggal_expired', [$tanggal_mulai, $tanggal_selesai])
+            ->orderBy('wastes.created_at', 'desc')
+            ->get();
+            
+        echo "<h3>Data Waste dengan Join (" . count($wasteData) . " records):</h3>";
+        foreach($wasteData as $data) {
+            echo "- " . $data->nama_roti . " | Qty: " . $data->jumlah_waste . " | Kerugian: Rp " . number_format($data->total_kerugian) . " | Expired: " . $data->tanggal_expired . "<br>";
+        }
+        
+        // Test dengan periode yang lebih luas untuk waste
+        $tanggal_mulai_luas = date('Y-m-d', strtotime('-30 days'));
+        $wasteDataLuas = \Illuminate\Support\Facades\DB::table('wastes')
+            ->select(
+                'wastes.*',
+                'users.name as user_name',
+                'rotis.nama_roti',
+                'rotis.rasa_roti',
+                'rotis.harga_roti',
+                \Illuminate\Support\Facades\DB::raw('(rotis.harga_roti * wastes.jumlah_waste) as total_kerugian')
+            )
+            ->join('users', 'users.id', '=', 'wastes.user_id')
+            ->join('rotis', 'rotis.id', '=', 'wastes.roti_id')
+            ->whereBetween('wastes.tanggal_expired', [$tanggal_mulai_luas, $tanggal_selesai])
+            ->orderBy('wastes.created_at', 'desc')
+            ->get();
+            
+        echo "<h3>Data Waste 30 hari terakhir (" . count($wasteDataLuas) . " records):</h3>";
+        foreach($wasteDataLuas as $data) {
+            echo "- " . $data->nama_roti . " | Qty: " . $data->jumlah_waste . " | Kerugian: Rp " . number_format($data->total_kerugian) . " | Expired: " . $data->tanggal_expired . "<br>";
+        }
+        
         return "Test selesai";
         
     } catch (\Exception $e) {

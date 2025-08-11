@@ -133,27 +133,6 @@
         </div>
     </div>
 
-    <div class="summary-section">
-        <h3 style="margin-top: 0;">Ringkasan Penjualan</h3>
-        <div class="summary-grid">
-            <div class="summary-item">
-                <span class="summary-label">Total Transaksi:</span>
-                <span class="summary-value">{{ number_format($summary['jumlah_transaksi']) }}</span>
-            </div>
-            <div class="summary-item">
-                <span class="summary-label">Total Item Terjual:</span>
-                <span class="summary-value">{{ number_format($summary['total_item_terjual']) }}</span>
-            </div>
-            <div class="summary-item">
-                <span class="summary-label">Total Pendapatan:</span>
-                <span class="summary-value currency">Rp {{ number_format($summary['total_penjualan'], 0, ',', '.') }}</span>
-            </div>
-            <div class="summary-item">
-                <span class="summary-label">Rata-rata per Transaksi:</span>
-                <span class="summary-value currency">Rp {{ number_format($summary['rata_rata_per_transaksi'], 0, ',', '.') }}</span>
-            </div>
-        </div>
-    </div>
 
     @if(count($penjualan_list) > 0)
     <h3>Detail Transaksi</h3>

@@ -547,7 +547,7 @@ class LaporanController extends Controller
                 ->join('stok_history', 'stok_history.id', '=', 'wastes.stok_history_id')
                 ->join('rotis', 'rotis.id', '=', 'stok_history.roti_id')
                 ->where('wastes.status', '!=', 9)
-                ->whereBetween('stok_history.tanggal', [$tanggalMulai, $tanggalSelesai])
+                ->whereBetween('wastes.tanggal_expired', [$tanggalMulai, $tanggalSelesai])
                 ->orderBy('wastes.created_at', 'desc')
                 ->get();
 
