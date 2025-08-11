@@ -139,27 +139,6 @@
         </div>
     </div>
 
-    <div class="summary-section">
-        <h3 style="margin-top: 0;">Ringkasan Waste</h3>
-        <div class="summary-grid">
-            <div class="summary-item">
-                <span class="summary-label">Total Item Waste:</span>
-                <span class="summary-value">{{ number_format($summary['total_item_waste']) }}</span>
-            </div>
-            <div class="summary-item">
-                <span class="summary-label">Total Transaksi:</span>
-                <span class="summary-value">{{ number_format($summary['jumlah_transaksi']) }}</span>
-            </div>
-            <div class="summary-item">
-                <span class="summary-label">Total Kerugian:</span>
-                <span class="summary-value currency">Rp {{ number_format($summary['total_kerugian'], 0, ',', '.') }}</span>
-            </div>
-            <div class="summary-item">
-                <span class="summary-label">Rata-rata per Item:</span>
-                <span class="summary-value currency">Rp {{ number_format($summary['total_item_waste'] > 0 ? $summary['total_kerugian'] / $summary['total_item_waste'] : 0, 0, ',', '.') }}</span>
-            </div>
-        </div>
-    </div>
 
     @if(count($waste_list) > 0)
     <h3>Detail Waste</h3>
