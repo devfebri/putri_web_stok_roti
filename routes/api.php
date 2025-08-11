@@ -241,6 +241,156 @@ Route::get('/test-waste-pdf-debug', function () {
     }
 });
 
+// Check production system
+Route::get('/check-production-system', function () {
+    try {
+        echo "<h2>Production System Check</h2>";
+        
+        // Check database connection
+        echo "<h3>Database Connection</h3>";
+        try {
+            \Illuminate\Support\Facades\DB::connection()->getPdo();
+            echo "<p>✅ Database connected successfully</p>";
+            
+            // Show database name
+            $dbName = \Illuminate\Support\Facades\DB::connection()->getDatabaseName();
+            echo "<p>Database: $dbName</p>";
+            
+        } catch(Exception $e) {
+            echo "<p>❌ Database connection failed: " . $e->getMessage() . "</p>";
+        }
+        
+        // Check Laravel version
+        echo "<h3>Laravel System</h3>";
+        echo "<p>Laravel Version: " . app()->version() . "</p>";
+        echo "<p>PHP Version: " . phpversion() . "</p>";
+        echo "<p>Environment: " . config('app.env') . "</p>";
+        
+        // Check DomPDF
+        echo "<h3>DomPDF Check</h3>";
+        try {
+            $pdf = app('dompdf.wrapper');
+            echo "<p>✅ DomPDF loaded successfully</p>";
+            
+            // Try basic PDF generation
+            $html = '<h1>Test PDF</h1><p>This is a test PDF generation.</p>';
+            $pdf->loadHTML($html);
+            $pdf->setPaper('A4', 'landscape');
+            echo "<p>✅ Basic PDF generation test passed</p>";
+            
+        } catch(Exception $e) {
+            echo "<p>❌ DomPDF error: " . $e->getMessage() . "</p>";
+        }
+        
+        // Check file paths
+        echo "<h3>File Path Check</h3>";
+        $paths = [
+            'public_path' => public_path(),
+            'public_img' => public_path('img'),
+            'logo_path' => public_path('img/logo.png'),
+            'storage_path' => storage_path(),
+            'base_path' => base_path(),
+        ];
+        
+        foreach($paths as $name => $path) {
+            $exists = file_exists($path) ? '✅' : '❌';
+            echo "<p>$exists $name: $path</p>";
+        }
+        
+        // Check permissions
+        echo "<h3>Permission Check</h3>";
+        $checkPaths = [
+            public_path(),
+            public_path('img'),
+            storage_path(),
+        ];
+        
+        foreach($checkPaths as $path) {
+            if(file_exists($path)) {
+                $readable = is_readable($path) ? '✅ readable' : '❌ not readable';
+                $writable = is_writable($path) ? '✅ writable' : '❌ not writable';
+                echo "<p>$path: $readable, $writable</p>";
+            }
+        }
+        
+        return "";
+        
+    } catch (\Exception $e) {
+        return "Error: " . $e->getMessage();
+    }
+});
+
+// Check production data
+Route::get('/check-production-data', function () {
+    try {
+        echo "<h2>Production Data Check</h2>";
+        
+        // Check all tables
+        $tables = ['users', 'rotis', 'stok_history', 'wastes', 'transaksi', 'roti_pos'];
+        
+        foreach($tables as $table) {
+            try {
+                $count = \Illuminate\Support\Facades\DB::table($table)->count();
+                echo "<p><strong>$table:</strong> $count records</p>";
+                
+                if($table == 'wastes' && $count > 0) {
+                    $wastes = \Illuminate\Support\Facades\DB::table($table)->get();
+                    echo "<table border='1' style='margin: 10px 0;'>";
+                    echo "<tr><th>ID</th><th>Kode</th><th>Expired</th><th>Status</th><th>User ID</th><th>Stok History ID</th></tr>";
+                    foreach($wastes as $waste) {
+                        echo "<tr>";
+                        echo "<td>$waste->id</td>";
+                        echo "<td>$waste->kode_waste</td>";
+                        echo "<td>$waste->tanggal_expired</td>";
+                        echo "<td>$waste->status</td>";
+                        echo "<td>$waste->user_id</td>";
+                        echo "<td>$waste->stok_history_id</td>";
+                        echo "</tr>";
+                    }
+                    echo "</table>";
+                }
+                
+                if($table == 'stok_history' && $count > 0) {
+                    $stoks = \Illuminate\Support\Facades\DB::table($table)->get();
+                    echo "<table border='1' style='margin: 10px 0;'>";
+                    echo "<tr><th>ID</th><th>Roti ID</th><th>Stok</th><th>Tanggal</th></tr>";
+                    foreach($stoks as $stok) {
+                        echo "<tr>";
+                        echo "<td>$stok->id</td>";
+                        echo "<td>$stok->roti_id</td>";
+                        echo "<td>$stok->stok</td>";
+                        echo "<td>$stok->tanggal</td>";
+                        echo "</tr>";
+                    }
+                    echo "</table>";
+                }
+                
+                if($table == 'rotis' && $count > 0) {
+                    $rotis = \Illuminate\Support\Facades\DB::table($table)->get();
+                    echo "<table border='1' style='margin: 10px 0;'>";
+                    echo "<tr><th>ID</th><th>Nama</th><th>Harga</th></tr>";
+                    foreach($rotis as $roti) {
+                        echo "<tr>";
+                        echo "<td>$roti->id</td>";
+                        echo "<td>$roti->nama_roti</td>";
+                        echo "<td>$roti->harga_roti</td>";
+                        echo "</tr>";
+                    }
+                    echo "</table>";
+                }
+                
+            } catch(Exception $e) {
+                echo "<p><strong>$table:</strong> ERROR - " . $e->getMessage() . "</p>";
+            }
+        }
+        
+        return "";
+        
+    } catch (\Exception $e) {
+        return "Error: " . $e->getMessage();
+    }
+});
+
 // Test PDF generation simple
 Route::get('/test-waste-pdf-simple', function () {
     try {
