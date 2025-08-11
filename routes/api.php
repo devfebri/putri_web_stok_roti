@@ -118,6 +118,80 @@ Route::get('/test-laporan-data', function () {
     }
 });
 
+// Test waste PDF debug
+Route::get('/test-waste-pdf-debug', function () {
+    try {
+        $periode = 'bulanan';
+        $tanggalMulai = \Carbon\Carbon::now()->startOfMonth()->toDateString();
+        $tanggalSelesai = \Carbon\Carbon::now()->endOfMonth()->toDateString();
+        
+        echo "<h2>Debug Waste PDF</h2>";
+        echo "<h3>Periode: $periode ($tanggalMulai - $tanggalSelesai)</h3>";
+        
+        // Query exact dari controller
+        $wasteData = \Illuminate\Support\Facades\DB::table('wastes')
+            ->select(
+                'wastes.id',
+                'wastes.kode_waste',
+                'wastes.jumlah_waste',
+                'wastes.tanggal_expired',
+                'wastes.keterangan',
+                'wastes.created_at',
+                'users.name as user_name',
+                'rotis.nama_roti',
+                'rotis.rasa_roti',
+                'rotis.harga_roti',
+                'stok_history.tanggal as tanggal_stok',
+                \Illuminate\Support\Facades\DB::raw('(rotis.harga_roti * wastes.jumlah_waste) as total_kerugian')
+            )
+            ->join('users', 'users.id', '=', 'wastes.user_id')
+            ->join('stok_history', 'stok_history.id', '=', 'wastes.stok_history_id')
+            ->join('rotis', 'rotis.id', '=', 'stok_history.roti_id')
+            ->where('wastes.status', '!=', 9)
+            ->whereBetween('wastes.tanggal_expired', [$tanggalMulai, $tanggalSelesai])
+            ->orderBy('wastes.created_at', 'desc')
+            ->get();
+            
+        echo "<h3>Query Result: " . count($wasteData) . " records</h3>";
+        
+        if(count($wasteData) > 0) {
+            echo "<table border='1'>";
+            echo "<tr><th>Kode</th><th>Produk</th><th>Qty</th><th>Harga</th><th>Kerugian</th><th>Expired</th></tr>";
+            foreach($wasteData as $waste) {
+                echo "<tr>";
+                echo "<td>" . $waste->kode_waste . "</td>";
+                echo "<td>" . $waste->nama_roti . "</td>";
+                echo "<td>" . $waste->jumlah_waste . "</td>";
+                echo "<td>Rp " . number_format($waste->harga_roti) . "</td>";
+                echo "<td>Rp " . number_format($waste->total_kerugian) . "</td>";
+                echo "<td>" . $waste->tanggal_expired . "</td>";
+                echo "</tr>";
+            }
+            echo "</table>";
+        }
+        
+        // Summary
+        $summary = [
+            'total_item_waste' => $wasteData->sum('jumlah_waste'),
+            'total_kerugian' => $wasteData->sum('total_kerugian'),
+            'jumlah_transaksi' => $wasteData->count(),
+            'periode' => $periode,
+            'tanggal_mulai' => \Carbon\Carbon::parse($tanggalMulai)->format('d/m/Y'),
+            'tanggal_selesai' => \Carbon\Carbon::parse($tanggalSelesai)->format('d/m/Y'),
+        ];
+        
+        echo "<h3>Summary:</h3>";
+        echo "- Total Item Waste: " . number_format($summary['total_item_waste']) . "<br>";
+        echo "- Total Kerugian: Rp " . number_format($summary['total_kerugian']) . "<br>";
+        echo "- Jumlah Transaksi: " . number_format($summary['jumlah_transaksi']) . "<br>";
+        
+        return "";
+        
+    } catch (\Exception $e) {
+        return "Error: " . $e->getMessage() . "<br>Stack trace: " . $e->getTraceAsString();
+    }
+});
+
 // PDF Routes - Public access (no authentication required)
 Route::get('/laporan/penjualan/pdf', [LaporanController::class, 'penjualanPdfExport'])->name('public_laporan_penjualan_pdf');
 Route::get('/laporan/waste/pdf', [LaporanController::class, 'wastePdfExport'])->name('public_laporan_waste_pdf');
