@@ -19,7 +19,12 @@ class StokHistoryController extends Controller
     public function indexForTransaksi()
     {
         try {
-            $stokhistory = DB::table('stok_history')
+            // Get user info from token
+            $user = Auth::user();
+            $userRole = $user->role ?? '';
+            $userId = $user->id;
+
+            $stokhistoryQuery = DB::table('stok_history')
                 ->select(
                     'stok_history.id as stok_history_id',
                     'stok_history.roti_id',
@@ -29,16 +34,28 @@ class StokHistoryController extends Controller
                     'stok_history.stok', 
                     'rotis.gambar_roti', 
                     'stok_history.stok_awal', 
-                    'stok_history.tanggal'
+                    'stok_history.tanggal',
+                    'frontliner.name as frontliner_name'
                 )
                 ->join('rotis', 'stok_history.roti_id', '=', 'rotis.id')
-                ->where('stok_history.stok', '>', 0)
-                ->get();
+                ->leftJoin('users as frontliner', 'frontliner.id', '=', 'stok_history.frontliner_id')
+                ->where('stok_history.stok', '>', 0);
+
+            // Filter berdasarkan role
+            if (strtolower($userRole) === 'frontliner') {
+                // Frontliner hanya melihat stok yang ditugaskan kepada mereka
+                $stokhistoryQuery->where('stok_history.frontliner_id', $userId);
+            }
+            // Admin, kepalatokokios, pimpinan, bakery melihat semua data (tidak ada filter tambahan)
+
+            $stokhistory = $stokhistoryQuery->get();
 
             return response()->json([
                 'success' => true,
                 'data' => $stokhistory,
-                'message' => 'Data produk untuk transaksi berhasil diambil'
+                'message' => 'Data produk untuk transaksi berhasil diambil',
+                'user_role' => $userRole,
+                'filtered_by_frontliner' => strtolower($userRole) === 'frontliner',
             ]);
         } catch (\Exception $e) {
             return response()->json([

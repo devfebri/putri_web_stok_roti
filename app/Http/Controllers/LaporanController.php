@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 use Barryvdh\DomPDF\Facade\Pdf;
 
@@ -20,6 +21,11 @@ class LaporanController extends Controller
         $periode = $request->periode;
         $tanggalMulai = $request->tanggal_mulai;
         $tanggalSelesai = $request->tanggal_selesai;
+
+        // Get user info from token
+        $user = Auth::user();
+        $userRole = $user->role ?? '';
+        $userId = $user->id;
 
         // Set default tanggal berdasarkan periode
         if (!$tanggalMulai || !$tanggalSelesai) {
@@ -39,8 +45,8 @@ class LaporanController extends Controller
             }
         }
 
-        // Query laporan waste
-        $wasteData = DB::table('wastes')
+        // Query laporan waste dengan filtering berdasarkan role
+        $wasteQuery = DB::table('wastes')
             ->select(
                 'wastes.id',
                 'wastes.kode_waste',
@@ -53,15 +59,24 @@ class LaporanController extends Controller
                 'rotis.rasa_roti',
                 'rotis.harga_roti',
                 'stok_history.tanggal as tanggal_stok',
+                'frontliner.name as frontliner_name',
                 DB::raw('(rotis.harga_roti * wastes.jumlah_waste) as total_kerugian')
             )
             ->join('users', 'users.id', '=', 'wastes.user_id')
             ->join('stok_history', 'stok_history.id', '=', 'wastes.stok_history_id')
             ->join('rotis', 'rotis.id', '=', 'stok_history.roti_id')
+            ->leftJoin('users as frontliner', 'frontliner.id', '=', 'stok_history.frontliner_id')
             ->where('wastes.status', '!=', 9)
-            ->whereBetween('stok_history.tanggal', [$tanggalMulai, $tanggalSelesai])
-            ->orderBy('wastes.created_at', 'desc')
-            ->get();
+            ->whereBetween('stok_history.tanggal', [$tanggalMulai, $tanggalSelesai]);
+
+        // Filter berdasarkan role
+        if (strtolower($userRole) === 'frontliner') {
+            // Frontliner hanya melihat data mereka sendiri
+            $wasteQuery->where('stok_history.frontliner_id', $userId);
+        }
+        // Admin, kepalatokokios, pimpinan, bakery melihat semua data (tidak ada filter tambahan)
+
+        $wasteData = $wasteQuery->orderBy('wastes.created_at', 'desc')->get();
 
         // Summary data
         $summary = [
@@ -71,6 +86,8 @@ class LaporanController extends Controller
             'periode' => $periode,
             'tanggal_mulai' => $tanggalMulai,
             'tanggal_selesai' => $tanggalSelesai,
+            'user_role' => $userRole,
+            'filtered_by_frontliner' => strtolower($userRole) === 'frontliner',
         ];
 
         // Group by roti untuk statistik
@@ -107,6 +124,11 @@ class LaporanController extends Controller
             $tanggalMulai = $request->tanggal_mulai;
             $tanggalSelesai = $request->tanggal_selesai;
 
+            // Get user info from token
+            $user = Auth::user();
+            $userRole = $user->role ?? '';
+            $userId = $user->id;
+
             // Set default tanggal berdasarkan periode
             if (!$tanggalMulai || !$tanggalSelesai) {
                 switch ($periode) {
@@ -125,8 +147,8 @@ class LaporanController extends Controller
                 }
             }
 
-            // Query laporan purchase order
-            $poData = DB::table('roti_pos')
+            // Query laporan purchase order dengan filtering berdasarkan role
+            $poQuery = DB::table('roti_pos')
                 ->select(
                     'roti_pos.id',
                     'roti_pos.kode_po',
@@ -139,14 +161,23 @@ class LaporanController extends Controller
                     'rotis.nama_roti',
                     'rotis.rasa_roti',
                     'rotis.harga_roti',
+                    'frontliner.name as frontliner_name',
                     DB::raw('(rotis.harga_roti * roti_pos.jumlah_po) as total_nilai')
                 )
                 ->join('users', 'users.id', '=', 'roti_pos.user_id')
                 ->join('rotis', 'rotis.id', '=', 'roti_pos.roti_id')
+                ->leftJoin('users as frontliner', 'frontliner.id', '=', 'roti_pos.frontliner_id')
                 ->where('roti_pos.status', '!=', 9)
-                ->whereBetween('roti_pos.tanggal_order', [$tanggalMulai, $tanggalSelesai])
-                ->orderBy('roti_pos.created_at', 'desc')
-                ->get();
+                ->whereBetween('roti_pos.tanggal_order', [$tanggalMulai, $tanggalSelesai]);
+
+            // Filter berdasarkan role
+            if (strtolower($userRole) === 'frontliner') {
+                // Frontliner hanya melihat PO yang ditugaskan kepada mereka
+                $poQuery->where('roti_pos.frontliner_id', $userId);
+            }
+            // Admin, kepalatokokios, pimpinan, bakery melihat semua data (tidak ada filter tambahan)
+
+            $poData = $poQuery->orderBy('roti_pos.created_at', 'desc')->get();
 
             // Summary data
             $summary = [
@@ -159,6 +190,8 @@ class LaporanController extends Controller
                 'periode' => $periode,
                 'tanggal_mulai' => $tanggalMulai,
                 'tanggal_selesai' => $tanggalSelesai,
+                'user_role' => $userRole,
+                'filtered_by_frontliner' => strtolower($userRole) === 'frontliner',
             ];
 
             // Group by roti untuk statistik
@@ -253,6 +286,11 @@ class LaporanController extends Controller
         $tanggalMulai = $request->tanggal_mulai;
         $tanggalSelesai = $request->tanggal_selesai;
 
+        // Get user info from token
+        $user = Auth::user();
+        $userRole = $user->role ?? '';
+        $userId = $user->id;
+
         // Set default tanggal berdasarkan periode
         if (!$tanggalMulai || !$tanggalSelesai) {
             switch ($periode) {
@@ -269,8 +307,8 @@ class LaporanController extends Controller
                     $tanggalSelesai = Carbon::now()->endOfMonth()->toDateString();
                     break;
             }
-        }        // Query laporan penjualan (menggunakan tabel transaksi)
-        $penjualanData = DB::table('transaksi')
+        }        // Query laporan penjualan (menggunakan tabel transaksi) dengan filtering berdasarkan role
+        $penjualanQuery = DB::table('transaksi')
             ->select(
                 'transaksi.id',
                 'transaksi.nama_customer',
@@ -281,13 +319,23 @@ class LaporanController extends Controller
                 'transaksi.created_at',
                 'users.name as user_name',
                 'rotis.nama_roti',
-                'rotis.rasa_roti'
+                'rotis.rasa_roti',
+                'frontliner.name as frontliner_name'
             )
             ->join('users', 'users.id', '=', 'transaksi.user_id')
             ->join('rotis', 'rotis.id', '=', 'transaksi.roti_id')
-            ->whereBetween('transaksi.tanggal_transaksi', [$tanggalMulai, $tanggalSelesai])
-            ->orderBy('transaksi.created_at', 'desc')
-            ->get();        // Summary data
+            ->leftJoin('stok_history', 'stok_history.id', '=', 'transaksi.stok_history_id')
+            ->leftJoin('users as frontliner', 'frontliner.id', '=', 'stok_history.frontliner_id')
+            ->whereBetween('transaksi.tanggal_transaksi', [$tanggalMulai, $tanggalSelesai]);
+
+        // Filter berdasarkan role
+        if (strtolower($userRole) === 'frontliner') {
+            // Frontliner hanya melihat transaksi dari stok mereka sendiri
+            $penjualanQuery->where('stok_history.frontliner_id', $userId);
+        }
+        // Admin, kepalatokokios, pimpinan, bakery melihat semua data (tidak ada filter tambahan)
+
+        $penjualanData = $penjualanQuery->orderBy('transaksi.created_at', 'desc')->get();        // Summary data
         $summary = [
             'total_penjualan' => $penjualanData->sum('total_harga'),
             'total_item_terjual' => $penjualanData->sum('jumlah'),
@@ -296,6 +344,8 @@ class LaporanController extends Controller
             'periode' => $periode,
             'tanggal_mulai' => $tanggalMulai,
             'tanggal_selesai' => $tanggalSelesai,
+            'user_role' => $userRole,
+            'filtered_by_frontliner' => strtolower($userRole) === 'frontliner',
         ];
 
         // Group by tanggal untuk trend
@@ -322,43 +372,66 @@ class LaporanController extends Controller
 
     public function dashboardStatsApi()
     {
+        // Get user info from token
+        $user = Auth::user();
+        $userRole = $user->role ?? '';
+        $userId = $user->id;
+
         $today = Carbon::today()->toDateString();
         $thisWeek = [Carbon::now()->startOfWeek()->toDateString(), Carbon::now()->endOfWeek()->toDateString()];
         $thisMonth = [Carbon::now()->startOfMonth()->toDateString(), Carbon::now()->endOfMonth()->toDateString()];
 
-        // Waste stats
+        // Waste stats dengan filtering berdasarkan role
         $wasteToday = DB::table('wastes')
             ->join('stok_history', 'stok_history.id', '=', 'wastes.stok_history_id')
             ->where('stok_history.tanggal', $today)
             ->where('wastes.status', '!=', 9)
+            ->when(strtolower($userRole) === 'frontliner', function($query) use ($userId) {
+                return $query->where('stok_history.frontliner_id', $userId);
+            })
             ->sum('wastes.jumlah_waste');
 
         $wasteThisWeek = DB::table('wastes')
             ->join('stok_history', 'stok_history.id', '=', 'wastes.stok_history_id')
             ->whereBetween('stok_history.tanggal', $thisWeek)
             ->where('wastes.status', '!=', 9)
+            ->when(strtolower($userRole) === 'frontliner', function($query) use ($userId) {
+                return $query->where('stok_history.frontliner_id', $userId);
+            })
             ->sum('wastes.jumlah_waste');
 
         $wasteThisMonth = DB::table('wastes')
             ->join('stok_history', 'stok_history.id', '=', 'wastes.stok_history_id')
             ->whereBetween('stok_history.tanggal', $thisMonth)
             ->where('wastes.status', '!=', 9)
+            ->when(strtolower($userRole) === 'frontliner', function($query) use ($userId) {
+                return $query->where('stok_history.frontliner_id', $userId);
+            })
             ->sum('wastes.jumlah_waste');
 
-        // PO stats
+        // PO stats dengan filtering berdasarkan role
         $poToday = DB::table('roti_pos')
             ->where('tanggal_order', $today)
             ->where('status', '!=', 9)
+            ->when(strtolower($userRole) === 'frontliner', function($query) use ($userId) {
+                return $query->where('frontliner_id', $userId);
+            })
             ->count();
 
         $poThisWeek = DB::table('roti_pos')
             ->whereBetween('tanggal_order', $thisWeek)
             ->where('status', '!=', 9)
+            ->when(strtolower($userRole) === 'frontliner', function($query) use ($userId) {
+                return $query->where('frontliner_id', $userId);
+            })
             ->count();
 
         $poThisMonth = DB::table('roti_pos')
             ->whereBetween('tanggal_order', $thisMonth)
             ->where('status', '!=', 9)
+            ->when(strtolower($userRole) === 'frontliner', function($query) use ($userId) {
+                return $query->where('frontliner_id', $userId);
+            })
             ->count();
 
         return response()->json([
