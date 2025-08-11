@@ -125,8 +125,42 @@ Route::get('/test-waste-pdf-debug', function () {
         $tanggalMulai = \Carbon\Carbon::now()->startOfMonth()->toDateString();
         $tanggalSelesai = \Carbon\Carbon::now()->endOfMonth()->toDateString();
         
-        echo "<h2>Debug Waste PDF</h2>";
+        echo "<h2>Debug Waste PDF Production</h2>";
         echo "<h3>Periode: $periode ($tanggalMulai - $tanggalSelesai)</h3>";
+        
+        // Check server info
+        echo "<h3>Server Info:</h3>";
+        echo "- PHP Version: " . phpversion() . "<br>";
+        echo "- Laravel Version: " . app()->version() . "<br>";
+        echo "- Environment: " . config('app.env') . "<br>";
+        echo "- Debug Mode: " . (config('app.debug') ? 'true' : 'false') . "<br>";
+        
+        // Check database connection
+        try {
+            \Illuminate\Support\Facades\DB::connection()->getPdo();
+            echo "- Database: Connected<br>";
+        } catch(Exception $e) {
+            echo "- Database: ERROR - " . $e->getMessage() . "<br>";
+        }
+        
+        // Check all waste records first
+        $allWastes = \Illuminate\Support\Facades\DB::table('wastes')->get();
+        echo "<h3>All Waste Records: " . count($allWastes) . "</h3>";
+        
+        if(count($allWastes) > 0) {
+            echo "<table border='1'>";
+            echo "<tr><th>ID</th><th>Kode</th><th>Expired</th><th>Status</th><th>Created</th></tr>";
+            foreach($allWastes as $waste) {
+                echo "<tr>";
+                echo "<td>" . $waste->id . "</td>";
+                echo "<td>" . $waste->kode_waste . "</td>";
+                echo "<td>" . $waste->tanggal_expired . "</td>";
+                echo "<td>" . $waste->status . "</td>";
+                echo "<td>" . $waste->created_at . "</td>";
+                echo "</tr>";
+            }
+            echo "</table>";
+        }
         
         // Query exact dari controller
         $wasteData = \Illuminate\Support\Facades\DB::table('wastes')
@@ -152,7 +186,7 @@ Route::get('/test-waste-pdf-debug', function () {
             ->orderBy('wastes.created_at', 'desc')
             ->get();
             
-        echo "<h3>Query Result: " . count($wasteData) . " records</h3>";
+        echo "<h3>Controller Query Result: " . count($wasteData) . " records</h3>";
         
         if(count($wasteData) > 0) {
             echo "<table border='1'>";
@@ -168,6 +202,21 @@ Route::get('/test-waste-pdf-debug', function () {
                 echo "</tr>";
             }
             echo "</table>";
+        }
+        
+        // Check logo file
+        echo "<h3>Logo File Check:</h3>";
+        $logoPath = public_path('img/logo.png');
+        echo "- Logo Path: " . $logoPath . "<br>";
+        echo "- Logo Exists: " . (file_exists($logoPath) ? 'YES' : 'NO') . "<br>";
+        
+        // Check DomPDF
+        echo "<h3>DomPDF Check:</h3>";
+        try {
+            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadHTML('<h1>Test</h1>');
+            echo "- DomPDF: Working<br>";
+        } catch(Exception $e) {
+            echo "- DomPDF: ERROR - " . $e->getMessage() . "<br>";
         }
         
         // Summary
@@ -189,6 +238,30 @@ Route::get('/test-waste-pdf-debug', function () {
         
     } catch (\Exception $e) {
         return "Error: " . $e->getMessage() . "<br>Stack trace: " . $e->getTraceAsString();
+    }
+});
+
+// Test PDF generation simple
+Route::get('/test-waste-pdf-simple', function () {
+    try {
+        echo "<h2>Simple PDF Test</h2>";
+        
+        // Test simple HTML to PDF
+        $html = '
+        <h1>Test PDF</h1>
+        <p>Tanggal: ' . date('d/m/Y H:i:s') . '</p>
+        <table border="1">
+            <tr><th>No</th><th>Data</th></tr>
+            <tr><td>1</td><td>Test Data</td></tr>
+        </table>';
+        
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadHTML($html);
+        $pdf->setPaper('A4', 'portrait');
+        
+        return $pdf->download('test-simple.pdf');
+        
+    } catch (\Exception $e) {
+        return "PDF Error: " . $e->getMessage();
     }
 });
 

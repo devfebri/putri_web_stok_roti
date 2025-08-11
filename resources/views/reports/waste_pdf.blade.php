@@ -119,7 +119,9 @@
 <body>
     <div class="header">
         <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 20px;">
-            <img src="{{ public_path('img/logo.png') }}" alt="Logo" style="height: 60px; margin-right: 20px;">
+            @if(file_exists(public_path('img/logo.png')))
+                <img src="{{ public_path('img/logo.png') }}" alt="Logo" style="height: 60px; margin-right: 20px;">
+            @endif
             <div style="text-align: left;">
                 <h1 style="margin: 0; color: #333; font-size: 24px;">Laporan Waste</h1>
                 <h2 style="margin: 5px 0; color: #666; font-size: 16px; font-weight: normal;">{{ $summary['periode_text'] ?? 'Laporan Periode' }}</h2>
@@ -137,6 +139,21 @@
             <span class="info-label">Periode:</span>
             <span>{{ ucfirst($summary['periode']) }}</span>
         </div>
+    </div>
+
+    <!-- Debug Production -->
+    <div style="background: #f0f0f0; padding: 10px; margin: 10px 0; border: 1px solid #ccc;">
+        <h4>Debug Info (Production):</h4>
+        <p><strong>Environment:</strong> {{ config('app.env') }}</p>
+        <p><strong>Waste List Count:</strong> {{ count($waste_list) }}</p>
+        <p><strong>Summary:</strong> {{ json_encode($summary) }}</p>
+        @if(count($waste_list) > 0)
+            <p><strong>First Waste Data:</strong> {{ json_encode($waste_list->first()) }}</p>
+        @else
+            <p><strong>No waste data found!</strong></p>
+        @endif
+        <p><strong>Logo Path:</strong> {{ public_path('img/logo.png') }}</p>
+        <p><strong>Logo Exists:</strong> {{ file_exists(public_path('img/logo.png')) ? 'YES' : 'NO' }}</p>
     </div>
 
     <div class="summary-section">
