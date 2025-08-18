@@ -14,10 +14,12 @@ return new class extends Migration
         Schema::create('wastes', function (Blueprint $table) {
             $table->id();
             $table->string('kode_waste',50);
-            $table->integer('rotipo_id');
+            // $table->integer('rotipo_id');
+            $table->integer('stok_history_id');
+            $table->date('tanggal_expired');
             $table->integer('user_id');
             $table->integer('jumlah_waste');
-            $table->integer('jumlah_terjual');
+            // $table->integer('jumlah_terjual');
             $table->string('keterangan')->nullable();
             $table->tinyInteger('status')->default(0);
             $table->timestamps();

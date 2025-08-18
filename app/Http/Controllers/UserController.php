@@ -73,10 +73,26 @@ class UserController extends Controller
                 'email' => 'required|email|unique:users,email',
                 'password' => 'required|string|min:6',
                 'role' => 'required|string|in:admin,frontliner,kepalabakery,kepalatokokios,pimpinan',
+                'kepalatokokios_id' => 'nullable|exists:users,id',
                 'phone' => 'nullable|string|max:20',
                 'address' => 'nullable|string|max:500',
                 'is_active' => 'boolean'
             ]);
+
+            // Validasi kepalatokokios_id jika role frontliner atau admin
+            if (in_array($validated['role'], ['frontliner', 'admin']) && !empty($validated['kepalatokokios_id'])) {
+                $kepalaTokokios = User::where('id', $validated['kepalatokokios_id'])
+                                    ->where('role', 'kepalatokokios')
+                                    ->where('status', '!=', 9)
+                                    ->first();
+                
+                if (!$kepalaTokokios) {
+                    return response()->json([
+                        'status' => false,
+                        'message' => 'Kepala Toko Kios tidak valid atau tidak ditemukan'
+                    ], 400);
+                }
+            }
 
             // Generate username from email if not provided
             $emailPart = explode('@', $validated['email'])[0];
@@ -96,6 +112,7 @@ class UserController extends Controller
             $user->email = $validated['email'];
             $user->password = Hash::make($validated['password']);
             $user->role = $validated['role'];
+            $user->kepalatokokios_id = $validated['kepalatokokios_id'] ?? null;
             $user->phone = $validated['phone'] ?? null;
             $user->address = $validated['address'] ?? null;
             $user->status = isset($validated['is_active']) && $validated['is_active'] ? 1 : 0;
@@ -158,14 +175,31 @@ class UserController extends Controller
                 ],
                 'password' => 'nullable|string|min:6',
                 'role' => 'required|string|in:admin,frontliner,kepalabakery,kepalatokokios,pimpinan',
+                'kepalatokokios_id' => 'nullable|exists:users,id',
                 'phone' => 'nullable|string|max:20',
                 'address' => 'nullable|string|max:500',
                 'is_active' => 'boolean'
             ]);
 
+            // Validasi kepalatokokios_id jika role frontliner atau admin
+            if (in_array($validated['role'], ['frontliner', 'admin']) && !empty($validated['kepalatokokios_id'])) {
+                $kepalaTokokios = User::where('id', $validated['kepalatokokios_id'])
+                                    ->where('role', 'kepalatokokios')
+                                    ->where('status', '!=', 9)
+                                    ->first();
+                
+                if (!$kepalaTokokios) {
+                    return response()->json([
+                        'status' => false,
+                        'message' => 'Kepala Toko Kios tidak valid atau tidak ditemukan'
+                    ], 400);
+                }
+            }
+
             $user->name = $validated['name'];
             $user->email = $validated['email'];
             $user->role = $validated['role'];
+            $user->kepalatokokios_id = $validated['kepalatokokios_id'] ?? null;
             
             // Update phone and address
             $user->phone = $validated['phone'] ?? null;
@@ -247,6 +281,29 @@ class UserController extends Controller
             return response()->json([
                 'status' => false,
                 'message' => 'Failed to delete user',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    // Get list of Kepala Toko Kios untuk dropdown
+    public function getKepalaTokokios()
+    {
+        try {
+            $kepalaTokokios = User::where('role', 'kepalatokokios')
+                                 ->where('status', '!=', 9)
+                                 ->select('id', 'name', 'email')
+                                 ->orderBy('name')
+                                 ->get();
+            
+            return response()->json([
+                'status' => true,
+                'data' => $kepalaTokokios
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Failed to fetch Kepala Toko Kios',
                 'error' => $e->getMessage()
             ], 500);
         }

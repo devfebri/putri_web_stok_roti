@@ -35,18 +35,29 @@ class StokHistoryController extends Controller
                     'rotis.gambar_roti', 
                     'stok_history.stok_awal', 
                     'stok_history.tanggal',
-                    'frontliner.name as frontliner_name'
+                    'kepalatokokios.name as kepalatokokios_name'
                 )
                 ->join('rotis', 'stok_history.roti_id', '=', 'rotis.id')
-                ->leftJoin('users as frontliner', 'frontliner.id', '=', 'stok_history.frontliner_id')
+                ->leftJoin('users as kepalatokokios', 'kepalatokokios.id', '=', 'stok_history.kepalatokokios_id')
                 ->where('stok_history.stok', '>', 0);
 
             // Filter berdasarkan role
             if (strtolower($userRole) === 'frontliner') {
-                // Frontliner hanya melihat stok yang ditugaskan kepada mereka
-                $stokhistoryQuery->where('stok_history.frontliner_id', $userId);
+                // Frontliner hanya melihat stok dari kepalatokokios mereka
+                $kepalatokokiosId = $user->kepalatokokios_id;
+                if (!$kepalatokokiosId) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Frontliner belum di-assign ke Kepala Toko Kios',
+                        'data' => []
+                    ]);
+                }
+                $stokhistoryQuery->where('stok_history.kepalatokokios_id', $kepalatokokiosId);
+            } elseif (strtolower($userRole) === 'kepalatokokios') {
+                // Kepalatokokios hanya melihat stok mereka sendiri
+                $stokhistoryQuery->where('stok_history.kepalatokokios_id', $userId);
             }
-            // Admin, kepalatokokios, pimpinan, bakery melihat semua data (tidak ada filter tambahan)
+            // Admin, pimpinan, bakery melihat semua data (tidak ada filter tambahan)
 
             $stokhistory = $stokhistoryQuery->get();
 
@@ -55,7 +66,7 @@ class StokHistoryController extends Controller
                 'data' => $stokhistory,
                 'message' => 'Data produk untuk transaksi berhasil diambil',
                 'user_role' => $userRole,
-                'filtered_by_frontliner' => strtolower($userRole) === 'frontliner',
+                'filtered_by_role' => strtolower($userRole),
             ]);
         } catch (\Exception $e) {
             return response()->json([

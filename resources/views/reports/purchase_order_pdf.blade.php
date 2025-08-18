@@ -179,11 +179,11 @@
                 <td class="text-right">Rp {{ number_format($po->harga_roti, 0, ',', '.') }}</td>
                 <td class="text-right currency">Rp {{ number_format($po->total_nilai, 0, ',', '.') }}</td>
                 <td class="text-center">
-                    @if($po->status == 0)
+                    @if($po->po_status == 0)
                         <span class="status-pending">PENDING</span>
-                    @elseif($po->status == 1)
+                    @elseif($po->po_status == 1)
                         <span class="status-delivery">DELIVERY</span>
-                    @elseif($po->status == 2)
+                    @elseif($po->po_status == 2)
                         <span class="status-selesai">SELESAI</span>
                     @else
                         <span>UNKNOWN</span>

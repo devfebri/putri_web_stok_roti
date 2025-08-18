@@ -16,10 +16,11 @@ return new class extends Migration
             $table->foreignId('roti_id')->constrained('rotis')->onDelete('cascade');
             $table->foreignId('stok_history_id');
             $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
+            $table->string('kode_transaksi')->nullable();
             $table->string('nama_customer')->nullable();
             $table->integer('jumlah');
             $table->decimal('harga_satuan', 10, 2);
-            $table->decimal('total_harga', 10, 2);
+            $table->string('total_harga', 20);
             $table->string('metode_pembayaran', 50);
             $table->timestamp('tanggal_transaksi');
             $table->timestamps();

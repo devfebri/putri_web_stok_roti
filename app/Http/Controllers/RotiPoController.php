@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Pos;
 use App\Models\Roti;
 use App\Models\RotiPo;
 use App\Models\StokHistory;
@@ -14,34 +15,104 @@ class RotiPoController extends Controller
 {
    
 
-    public function indexApi()
+    // Get next PO code preview - DEPRECATED: gunakan PosController::getNextKodePoApi
+    public function getNextKodePoApi()
     {
-        $roti = DB::table('roti_pos')
+        return response()->json([
+            'status' => false,
+            'message' => 'Endpoint ini sudah tidak digunakan. Gunakan PosController::getNextKodePoApi'
+        ], 410);
+    }
+
+    // Public method for testing auto generate kode PO - DEPRECATED
+    public function testGenerateKodePo()
+    {
+        return 'DEPRECATED';
+    }
+
+    public function indexApi(Request $request)
+    {
+        // Get authenticated user
+        $user = $request->user();
+
+        // Query pos table untuk mendapatkan daftar PO
+        $query = DB::table('pos')
+            ->select(
+                'pos.id',
+                'pos.kode_po',
+                'pos.deskripsi',
+                'pos.tanggal_order',
+                'pos.status',
+                'pos.user_id',
+                'users.name as user_name',
+                'pos.created_at'
+            )
+            ->join('users', 'users.id', '=', 'pos.user_id')
+            ->where('pos.status', '!=', '9');
+
+        // Filter berdasarkan role user
+        if ($user) {
+            if ($user->role === 'kepalatokokios') {
+                $query->where('pos.user_id', $user->id);
+            } elseif ($user->role === 'kepalabakery') {
+                // Kepala bakery sees all POs (for processing)
+            } elseif ($user->role === 'admin' || $user->role === 'pimpinan') {
+                // Admin and pimpinan see all POs
+            } else {
+                $query->where('pos.user_id', $user->id);
+            }
+        }
+
+        $posList = $query->orderBy('pos.status', 'asc')
+            ->orderBy('pos.tanggal_order', 'asc')
+            ->get();
+
+        // Ambil semua pos_id
+        $posIds = $posList->pluck('id')->toArray();
+
+        // Ambil semua roti_pos yang terkait dengan pos_id di atas, join ke rotis
+        $rotiPos = DB::table('roti_pos')
             ->select(
                 'roti_pos.id',
-                'roti_pos.kode_po',
+                'roti_pos.pos_id',
                 'roti_pos.roti_id',
-                'rotis.nama_roti',
-                'rotis.gambar_roti', 
-                'rotis.rasa_roti',
-                'roti_pos.user_id',
-                'roti_pos.frontliner_id',
-                'roti_pos.deskripsi', 
-                'users.name', 
-                'frontliner.name as frontliner_name',
                 'roti_pos.jumlah_po',
-                'roti_pos.tanggal_order', 
-                'roti_pos.status'
+                'roti_pos.deskripsi',
+                'rotis.nama_roti',
+                'rotis.rasa_roti',
+                'rotis.harga_roti',
+                'rotis.gambar_roti'
             )
             ->join('rotis', 'rotis.id', '=', 'roti_pos.roti_id')
-            ->join('users', 'users.id', '=', 'roti_pos.user_id')
-            ->leftJoin('users as frontliner', 'frontliner.id', '=', 'roti_pos.frontliner_id')
-            ->where('roti_pos.status','!=','9')
-            ->orderBy('roti_pos.status', 'asc')
-            ->orderBy('roti_pos.tanggal_order', 'asc')
+            ->whereIn('roti_pos.pos_id', $posIds)
             ->get();
-        // dd($roti);
-        return response()->json(['status' => true, 'data' => $roti]);
+
+        // Group roti_pos by pos_id
+        $rotiPosByPosId = [];
+        foreach ($rotiPos as $item) {
+            $rotiPosByPosId[$item->pos_id][] = [
+                'id' => $item->id,
+                'roti_id' => $item->roti_id,
+                'jumlah_po' => $item->jumlah_po,
+                'deskripsi' => $item->deskripsi,
+                'nama_roti' => $item->nama_roti,
+                'rasa_roti' => $item->rasa_roti,
+                'harga_roti' => $item->harga_roti,
+                'gambar_roti' => $item->gambar_roti,
+            ];
+        }
+
+        // Tambahkan array products ke setiap PO
+        $result = $posList->map(function ($po) use ($rotiPosByPosId) {
+            $po = (array) $po;
+            $products = $rotiPosByPosId[$po['id']] ?? [];
+            $po['products'] = $products;
+            $po['total_quantity'] = array_sum(array_column($products, 'jumlah_po'));
+            $po['name'] = $po['user_name']; // Alias untuk konsistensi
+            return $po;
+        });
+
+        return response()->json(['status' => true, 'data' => $result]);
     }
     public function showApi($id)
     {
@@ -61,148 +132,149 @@ class RotiPoController extends Controller
         return response()->json(['status' => true, 'data' => $roti]);
     }
 
-    public function getFrontlinersApi()
+    public function getFrontlinersApi(Request $request)
     {
-        $frontliners = User::select('id', 'name')
-            ->where('role', 'frontliner')
-            ->where('status', '!=', 9)
-            ->get();
+        // Get authenticated user
+        $user = $request->user();
+        
+        // If user is kepalatokokios, filter frontliners by kepalatokokios_id
+        if ($user && $user->role === 'kepalatokokios') {
+            $frontliners = User::select('id', 'name')
+                ->where('role', 'frontliner')
+                ->where('status', '!=', 9)
+                ->where('kepalatokokios_id', $user->id)
+                ->get();
+        } else {
+            // For other roles (admin, etc), show all frontliners
+            $frontliners = User::select('id', 'name')
+                ->where('role', 'frontliner')
+                ->where('status', '!=', 9)
+                ->get();
+        }
+        
         return response()->json(['status' => true, 'data' => $frontliners]);
     }
 
-    // Tambah roti
+    // Tambah roti - DEPRECATED: gunakan PosController::storeApi
     public function storeApi(Request $request)
     {
-        // Validasi data dan file
-        $request->validate([
-            'roti_id' => 'required',
-            'user_id' => 'required',
-            'frontliner_id' => 'required|exists:users,id',
-            'kode_po' => 'required',
-            'jumlah_po' => 'required',
-            'deskripsi' => 'nullable|string',
-            'tanggal_order' => 'required|date',
-        ]);
-
-        $roti = new RotiPo();
-        $roti->kode_po = $request->kode_po;
-        $roti->roti_id = $request->roti_id;
-        $roti->user_id = $request->user_id;
-        $roti->frontliner_id = $request->frontliner_id;
-        $roti->jumlah_po = $request->jumlah_po;
-        $roti->deskripsi = $request->deskripsi;
-        $roti->tanggal_order = $request->tanggal_order;
-        $roti->status = 0;
-
-        if ($roti->save()) {
-            return response()->json([
-                'status' => true,
-                'message' => 'Data berhasil ditambah',
-                'data' => $roti
-            ], 201);
-        } else {
-            return response()->json([
-                'status' => false,
-                'message' => 'Data gagal ditambah'
-            ], 500);
-        }
+        return response()->json([
+            'status' => false,
+            'message' => 'Endpoint ini sudah tidak digunakan. Gunakan PosController::storeApi'
+        ], 410);
     }
 
-    // Update roti
+    // Update roti - DEPRECATED: gunakan PosController::updateApi
     public function updateApi(Request $request, $id)
     {
-        $roti = RotiPo::find($id);
-        if (!$roti) {
-            return response()->json(['status' => false, 'message' => 'Data tidak ditemukan'], 404);
-        }
-
-        $request->validate([
-            'roti_id' => 'required',
-            'user_id' => 'required',
-            'frontliner_id' => 'sometimes|exists:users,id',
-            'jumlah_po' => 'required',
-            'deskripsi' => 'nullable|string',
-            'tanggal_order' => 'required|date',
-        ]);
-
-        $roti->kode_po = $request->kode_po ?? $roti->kode_po;
-        $roti->roti_id = $request->roti_id ?? $roti->roti_id;
-        $roti->user_id = $request->user_id ?? $roti->user_id;
-        $roti->frontliner_id = $request->frontliner_id ?? $roti->frontliner_id;
-        $roti->jumlah_po = $request->jumlah_po ?? $roti->jumlah_po;
-        $roti->deskripsi = $request->deskripsi ?? $roti->deskripsi;
-        $roti->tanggal_order = $request->tanggal_order;
-
-        $roti->save();
-        return response()->json(['status' => true, 'message' => 'Data berhasil diupdate', 'data' => $roti]);
+        return response()->json([
+            'status' => false,
+            'message' => 'Endpoint ini sudah tidak digunakan. Gunakan PosController::updateApi'
+        ], 410);
     }
 
     // Hapus roti
     public function destroyApi($id)
     {
-        $roti = RotiPo::find($id);
-        if (!$roti) {
+        $pos = Pos::find($id);
+        
+        if (!$pos) {
             return response()->json(['status' => false, 'message' => 'Data tidak ditemukan'], 404);
         }
-        // Hapus gambar jika ada
         
-        $roti->update(['status'=>9]);
-        // $roti->delete();
-        return response()->json(['status' => true, 'message' => 'Data berhasil dihapus']);
+        try {
+            DB::beginTransaction();
+            
+            // Delete related roti_pos items
+            RotiPo::where('pos_id', $pos->id)->delete();
+            
+            // Delete pos
+            $pos->delete();
+            
+            DB::commit();
+            
+            return response()->json([
+                'status' => true, 
+                'message' => "PO dengan kode {$pos->kode_po} berhasil dihapus"
+            ]);
+            
+        } catch (\Exception $e) {
+            DB::rollback();
+            return response()->json([
+                'status' => false, 
+                'message' => 'Gagal menghapus PO: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     public function deliveryPoApi(Request $request, $id)
     {
-        $rotiPo = RotiPo::find($id);
-        if (!$rotiPo) {
+        $pos = Pos::find($id);
+        if (!$pos) {
             return response()->json(['status' => false, 'message' => 'Data tidak ditemukan'], 404);
         }
 
         // Validasi status
-        if ($rotiPo->status != 0) {
-            return response()->json(['status' => false, 'message' => 'Roti PO sudah dikirim atau tidak valid'], 400);
+        if ($pos->status != 0) {
+            return response()->json(['status' => false, 'message' => 'PO sudah dikirim atau tidak valid'], 400);
         }
 
-        // Update status menjadi 1 (dikirim)
-        $rotiPo->status = 1;
-        $rotiPo->save();
+        // Update status menjadi 1 (delivery)
+        $pos->status = 1;
+        $pos->save();
 
         return response()->json([
             'status' => true,
-            'message' => 'Roti PO berhasil dikirim',
-            'data' => $rotiPo
+            'message' => 'PO berhasil dikirim',
+            'data' => $pos
         ]);
     }
 
     public function selesaiPoApi(Request $request, $id)
     {
-        $rotiPo = RotiPo::find($id);
-        if (!$rotiPo) {
+        dd('ok');
+        $pos = Pos::with('rotiPos')->find($id);
+        if (!$pos) {
             return response()->json(['status' => false, 'message' => 'Data tidak ditemukan'], 404);
         }
 
         // Validasi status
-        if ($rotiPo->status != 1) {
-            return response()->json(['status' => false, 'message' => 'Roti PO sudah dikirim atau tidak valid'], 400);
+        if ($pos->status != 1) {
+            return response()->json(['status' => false, 'message' => 'PO belum dikirim atau tidak valid'], 400);
         }
 
-        // Update status menjadi 2 (dikirim)
-        $rotiPo->status = 2;
-        $rotiPo->save();
+        try {
+            DB::beginTransaction();
+            
+            // Update status menjadi 2 (selesai)
+            $pos->status = 2;
+            $pos->save();
 
-        $rotiHistory = new StokHistory();
-        $rotiHistory->roti_id = $rotiPo->roti_id;
-        $rotiHistory->stok = $rotiPo->jumlah_po;
-        $rotiHistory->stok_awal = $rotiPo->jumlah_po;
-        $rotiHistory->frontliner_id = $rotiPo->frontliner_id;
-        $rotiHistory->tanggal = Carbon::now();
-        $rotiHistory->save();
+            // Create stok history for each roti item
+            foreach ($pos->rotiPos as $rotiPo) {
+                $stokHistory = new StokHistory();
+                $stokHistory->roti_id = $rotiPo->roti_id;
+                $stokHistory->stok = $rotiPo->jumlah_po;
+                $stokHistory->stok_awal = $rotiPo->jumlah_po;
+                $stokHistory->kepalatokokios_id = $pos->user_id;
+                $stokHistory->tanggal = Carbon::now();
+                $stokHistory->save();
+            }
+            
+            DB::commit();
 
-
-        return response()->json([
-            'status' => true,
-            'message' => 'Proses Po Selesai',
-            'data' => $rotiPo
-        ]);
+            return response()->json([
+                'status' => true,
+                'message' => 'Proses PO Selesai',
+                'data' => $pos
+            ]);
+            
+        } catch (\Exception $e) {
+            DB::rollback();
+            return response()->json([
+                'status' => false,
+                'message' => 'Gagal menyelesaikan PO: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }

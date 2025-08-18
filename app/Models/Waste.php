@@ -18,7 +18,7 @@ class Waste extends Model
     ];
 
     protected $casts = [
-        'tanggal_expired' => 'date',
+        'tanggal_expired' => 'datetime:Y-m-d',
     ];
 
     public function stokHistory()

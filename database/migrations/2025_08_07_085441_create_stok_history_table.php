@@ -13,6 +13,7 @@ return new class extends Migration
     {
         Schema::create('stok_history', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('kepalatokokios_id')->constrained('users')->onDelete('cascade');
             $table->foreignId('roti_id')->constrained('rotis')->onDelete('cascade');
             $table->integer('stok');
             $table->integer('stok_awal');

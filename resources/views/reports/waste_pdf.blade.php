@@ -142,19 +142,7 @@
     </div>
 
     <!-- Debug Production -->
-    <div style="background: #f0f0f0; padding: 10px; margin: 10px 0; border: 1px solid #ccc;">
-        <h4>Debug Info (Production):</h4>
-        <p><strong>Environment:</strong> {{ config('app.env') }}</p>
-        <p><strong>Waste List Count:</strong> {{ count($waste_list) }}</p>
-        <p><strong>Summary:</strong> {{ json_encode($summary) }}</p>
-        @if(count($waste_list) > 0)
-            <p><strong>First Waste Data:</strong> {{ json_encode($waste_list->first()) }}</p>
-        @else
-            <p><strong>No waste data found!</strong></p>
-        @endif
-        <p><strong>Logo Path:</strong> {{ public_path('img/logo.png') }}</p>
-        <p><strong>Logo Exists:</strong> {{ file_exists(public_path('img/logo.png')) ? 'YES' : 'NO' }}</p>
-    </div>
+    
 
 
     @if(count($waste_list) > 0)

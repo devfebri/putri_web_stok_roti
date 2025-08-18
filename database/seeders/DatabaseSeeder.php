@@ -13,44 +13,77 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        $data = new User();
-        $data->name = 'Admin';
-        $data->email = 'admin@gmail.com';
-        $data->username = 'admin';
-        $data->role = 'admin';
-        $data->password = bcrypt('password');
-        $data->save();
+        // User seeding - using role enum that matches database schema
+        User::create([
+            'name' => 'Admin',
+            'email' => 'admin@gmail.com',
+            'username' => 'admin',
+            'role' => 'admin',
+            'password' => bcrypt('password'),
+        ]);
 
-        $data = new User();
-        $data->name = 'Frontliner';
-        $data->email = 'frontliner@gmail.com';
-        $data->username = 'frontliner';
-        $data->role = 'frontliner';
-        $data->password = bcrypt('password');
-        $data->save();
+        User::create([
+            'name' => 'Kepala Bakery',
+            'email' => 'kepalabakery@gmail.com',
+            'username' => 'kepalabakery',
+            'role' => 'kepalabakery',
+            'password' => bcrypt('password'),
+        ]);
 
-        $data = new User();
-        $data->name = 'Kepala Toko Kios';
-        $data->email = 'kepalatokokios@gmail.com';
-        $data->username = 'kepalatokokios';
-        $data->role = 'kepalatokokios';
-        $data->password = bcrypt('password');
-        $data->save();
+        User::create([
+            'name' => 'Pimpinan',
+            'email' => 'pimpinan@gmail.com',
+            'username' => 'pimpinan',
+            'role' => 'pimpinan',
+            'password' => bcrypt('password'),
+        ]);
 
-        $data = new User();
-        $data->name = 'Kepala Bakery';
-        $data->email = 'kepalabakery@gmail.com';
-        $data->username = 'kepalabakery';
-        $data->role = 'kepalabakery';
-        $data->password = bcrypt('password');
-        $data->save();
+        User::create([
+            'name' => 'RS Abdul Manap',
+            'email' => 'rsabdulmanap@gmail.com',
+            'username' => 'rsabdulmanap',
+            'role' => 'kepalatokokios',
+            'password' => bcrypt('password'),
+        ]);
 
-        $data = new User();
-        $data->name = 'Pimpinan';
-        $data->email = 'pimpinan@gmail.com';
-        $data->username = 'pimpinan';
-        $data->role = 'pimpinan';
-        $data->password = bcrypt('password');
-        $data->save();
+        User::create([
+            'name' => 'Klinik Basmallah',
+            'email' => 'klinikbasmallah@gmail.com',
+            'username' => 'klinikbasmallah',
+            'role' => 'kepalatokokios',
+            'password' => bcrypt('password'),
+        ]);
+
+        User::create([
+            'name' => 'Graha Utama',
+            'email' => 'grahautama@gmail.com',
+            'username' => 'grahautama',
+            'role' => 'kepalatokokios',
+            'password' => bcrypt('password'),
+        ]);
+
+        User::create([
+            'name' => 'RS Sungai Kambang',
+            'email' => 'rssungaikambang@gmail.com',
+            'username' => 'rssungaikambang',
+            'role' => 'kepalatokokios',
+            'password' => bcrypt('password'),
+        ]);
+
+        // Add frontliner user
+        User::create([
+            'name' => 'front1',
+            'email' => 'front1@gmail.com',
+            'username' => 'front1',
+            'role' => 'frontliner',
+            'kepalatokokios_id' => 4, // RS Abdul Manap
+            'password' => bcrypt('password'),
+        ]);
+
+        // Run seeders
+        $this->call([
+            RotiSeeder::class,
+            // StokHistorySeeder::class,
+        ]);
     }
 }

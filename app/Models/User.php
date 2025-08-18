@@ -19,6 +19,7 @@ class User extends Authenticatable
         'phone',
         'address',
         'role',
+        'kepalatokokios_id',
         'password',
         'status',
     ];
@@ -44,5 +45,29 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    /**
+     * Relationship: User belongs to Kepala Toko Kios
+     */
+    public function kepalaTokokios()
+    {
+        return $this->belongsTo(User::class, 'kepalatokokios_id');
+    }
+
+    /**
+     * Relationship: Kepala Toko Kios has many frontliners
+     */
+    public function frontliners()
+    {
+        return $this->hasMany(User::class, 'kepalatokokios_id')->where('role', 'frontliner');
+    }
+
+    /**
+     * Relationship: Kepala Toko Kios has many stok history
+     */
+    public function stokHistories()
+    {
+        return $this->hasMany(StokHistory::class, 'kepalatokokios_id');
     }
 }

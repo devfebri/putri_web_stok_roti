@@ -13,6 +13,7 @@ return new class extends Migration
     {
         Schema::create('users', function (Blueprint $table) {
                 $table->id();
+                $table->integer('kepalatokokios_id')->nullable();
                 $table->string('name');
                 $table->string('username', 50)->unique();
                 $table->string('email')->nullable();
@@ -20,6 +21,8 @@ return new class extends Migration
                 $table->string('password');
                 $table->enum('role', ['pimpinan', 'kepalabakery', 'kepalatokokios', 'admin', 'frontliner'])->default('kepalatokokios');
                 $table->string('phone')->nullable();
+                    $table->integer('status')->default(1); // Hapus after('role')
+                    $table->text('address')->nullable();  // Hapus after('phone')
                 $table->rememberToken();
                 $table->timestamps();
         });

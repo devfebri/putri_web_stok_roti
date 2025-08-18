@@ -11,8 +11,59 @@ use Carbon\Carbon;
 
 class WasteController extends Controller
 {
+    // Generate automatic Waste code
+    private function generateKodeWaste()
+    {
+        return DB::transaction(function () {
+            $date = Carbon::now()->format('Ymd');
+            
+            $lastWaste = Waste::whereDate('created_at', Carbon::now())
+                        ->where('kode_waste', 'LIKE', "WS{$date}%")
+                        ->lockForUpdate()
+                        ->orderBy('kode_waste', 'desc')
+                        ->first();
+            
+            if ($lastWaste) {
+                $lastNumber = intval(substr($lastWaste->kode_waste, -3));
+                $newNumber = $lastNumber + 1;
+            } else {
+                $newNumber = 1;
+            }
+            
+            $newKodeWaste = "WS{$date}" . str_pad($newNumber, 3, '0', STR_PAD_LEFT);
+            
+            while (Waste::where('kode_waste', $newKodeWaste)->exists()) {
+                $newNumber++;
+                $newKodeWaste = "WS{$date}" . str_pad($newNumber, 3, '0', STR_PAD_LEFT);
+            }
+            
+            return $newKodeWaste;
+        });
+    }
+
+    // Get next Waste code preview
+    public function getNextKodeWasteApi()
+    {
+        $nextKodeWaste = $this->generateKodeWaste();
+        return response()->json([
+            'status' => true,
+            'kode_waste' => $nextKodeWaste,
+            'message' => 'Kode Waste yang akan digunakan'
+        ]);
+    }
+
     public function indexApi()
     {
+        $user = Auth::user();
+        // $kepalatokokiosId = $user->kepalatokokios_id;
+        
+        // if (!$kepalatokokiosId) {
+        //     return response()->json([
+        //         'status' => false,
+        //         'message' => 'User tidak memiliki kepalatokokios_id yang valid'
+        //     ], 400);
+        // }
+
         $waste = DB::table('wastes')
             ->select(
                 'wastes.id',
@@ -33,6 +84,7 @@ class WasteController extends Controller
             ->join('rotis', 'rotis.id', '=', 'stok_history.roti_id')
             ->join('users', 'users.id', '=', 'wastes.user_id')
             ->where('wastes.status','!=',9)
+            ->where('stok_history.kepalatokokios_id', $user->id) // Filter berdasarkan kepalatokokios_id
             ->orderBy('wastes.created_at', 'desc')
             ->get();
             
@@ -41,16 +93,17 @@ class WasteController extends Controller
 
     public function getAvailableStokApi()
     {
-        // Ambil stok yang masih ada sisa (stok > 0), dari tanggal hari ini, dan belum di-waste
-        $today = Carbon::today()->format('Y-m-d');
-        
+        $user = Auth::user();
+        // Ambil stok yang masih ada sisa (stok > 0), berdasarkan kepalatokokios_id, dan belum di-waste
         $availableStok = DB::table('stok_history')
             ->selectRaw('
                 stok_history.id, 
                 stok_history.stok,
                 stok_history.tanggal,
+                rotis.id as roti_id,
                 rotis.nama_roti,
                 rotis.rasa_roti,
+                rotis.gambar_roti,
                 CONCAT(
                     COALESCE(rotis.nama_roti, ""), 
                     " - ", 
@@ -61,15 +114,25 @@ class WasteController extends Controller
             ')
             ->join('rotis', 'rotis.id', '=', 'stok_history.roti_id')
             ->where('stok_history.stok', '>', 0) // Masih ada sisa stok
-            ->where('stok_history.tanggal', '=', $today) // Hanya stok dari hari ini
-            ->whereNotExists(function($query) {
-                // Belum di-waste
-                $query->select(DB::raw(1))
-                      ->from('wastes')
-                      ->whereRaw('wastes.stok_history_id = stok_history.id');
-            })
+            ->where('stok_history.kepalatokokios_id', $user->id) // Filter berdasarkan kepalatokokios_id
+            // ->whereNotExists(function($query) {
+            //     // Belum di-waste
+            //     $query->select(DB::raw(1))
+            //           ->from('wastes')
+            //           ->whereRaw('wastes.stok_history_id = stok_history.id')
+            //           ->where('wastes.status', '!=', 9);
+            // })
+            // ->whereIn('stok_history.id', function($query) use ($user) {
+            //     // Ambil stok history terbaru untuk setiap roti_id
+            //     $query->select(DB::raw('MAX(id)'))
+            //         ->from('stok_history')
+            //         ->where('kepalatokokios_id', $user->id)
+            //         ->groupBy('roti_id');
+            // })
+            ->orderBy('rotis.nama_roti')
             ->orderBy('stok_history.tanggal', 'desc')
             ->get();
+            // dd($availableStok);
 
         return response()->json(['status' => true, 'data' => $availableStok]);
     }
@@ -77,60 +140,97 @@ class WasteController extends Controller
     public function storeApi(Request $request)
     {
         $request->validate([
-            'kode_waste' => 'required|string|max:50',
-            'stok_history_id' => 'required|exists:stok_history,id',
-            'jumlah_waste' => 'required|integer|min:1',
+            'products' => 'required|array|min:1',
+            'products.*.stok_history_id' => 'required|exists:stok_history,id',
+            'products.*.jumlah_waste' => 'required|integer|min:1',
             'keterangan' => 'nullable|string',
         ]);
 
-        // Validasi stok history
-        $stokHistory = StokHistory::find($request->stok_history_id);
-        if (!$stokHistory) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Stok history tidak ditemukan'
-            ], 404);
-        }
-
-        // Validasi jumlah waste tidak melebihi sisa stok
-        if ($request->jumlah_waste > $stokHistory->stok) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Jumlah waste tidak boleh melebihi sisa stok (' . $stokHistory->stok . ')'
-            ], 422);
-        }
-
-        // Validasi belum ada waste untuk stok_history ini
-        $existingWaste = Waste::where('stok_history_id', $request->stok_history_id)->first();
-        if ($existingWaste) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Stok ini sudah pernah di-waste'
-            ], 422);
-        }
+        $user = Auth::user();
+        // $kepalatokokiosId = $user->kepalatokokios_id;
+        
+        // if (!$kepalatokokiosId) {
+        //     return response()->json([
+        //         'status' => false,
+        //         'message' => 'User tidak memiliki kepalatokokios_id yang valid'
+        //     ], 400);
+        // }
 
         DB::beginTransaction();
         try {
-            // Buat record waste
-            $waste = new Waste();
-            $waste->kode_waste = $request->kode_waste;
-            $waste->stok_history_id = $request->stok_history_id;
-            $waste->user_id = Auth::id();
-            $waste->jumlah_waste = $request->jumlah_waste;
-            $waste->tanggal_expired = $stokHistory->tanggal; // Tanggal yang sama dengan stok
-            $waste->keterangan = $request->keterangan;
-            $waste->save();
+            // Generate kode waste otomatis
+            $kodeWaste = $this->generateKodeWaste();
+            
+            $wastes = [];
+            foreach ($request->products as $product) {
+                // Validasi stok history
+                $stokHistory = StokHistory::where('id', $product['stok_history_id'])
+                    ->where('kepalatokokios_id', $user->id)
+                    ->first();
+                    
+                if (!$stokHistory) {
+                    DB::rollback();
+                    return response()->json([
+                        'status' => false,
+                        'message' => 'Stok history tidak ditemukan atau bukan milik kepala toko kios Anda'
+                    ], 404);
+                }
 
-            // Update stok di stok_history (kurangi dengan jumlah waste)
-            $stokHistory->stok -= $request->jumlah_waste;
-            $stokHistory->save();
+                // Validasi jumlah waste tidak melebihi sisa stok
+                if ($product['jumlah_waste'] > $stokHistory->stok) {
+                    DB::rollback();
+                    return response()->json([
+                        'status' => false,
+                        'message' => 'Jumlah waste tidak boleh melebihi sisa stok (' . $stokHistory->stok . ')'
+                    ], 422);
+                }
+
+                // Validasi belum ada waste untuk stok_history ini
+                $existingWaste = Waste::where('stok_history_id', $product['stok_history_id'])
+                    ->where('status', '!=', 9)
+                    ->first();
+                if ($existingWaste) {
+                    DB::rollback();
+                    return response()->json([
+                        'status' => false,
+                        'message' => 'Stok ini sudah pernah di-waste'
+                    ], 422);
+                }
+
+                // Buat record waste
+                $waste = new Waste();
+                $waste->kode_waste = $kodeWaste . '-' . str_pad(count($wastes) + 1, 2, '0', STR_PAD_LEFT);
+                $waste->stok_history_id = $product['stok_history_id'];
+                $waste->user_id = Auth::id();
+                $waste->jumlah_waste = $product['jumlah_waste'];
+                $waste->tanggal_expired = $stokHistory->tanggal; // Tanggal yang sama dengan stok
+                $waste->keterangan = $request->keterangan;
+                $waste->save();
+
+                // Create new stock history record - kurangi stok
+                $newStok = $stokHistory->stok - $product['jumlah_waste'];
+                $stokHistory=StokHistory::find($product['stok_history_id']);
+                $stokHistory->stok=$newStok;
+                $stokHistory->updated_at=now();
+                $stokHistory->save();
+                // StokHistory::create([
+                //     'roti_id' => $stokHistory->roti_id,
+                //     'stok' => $newStok,
+                //     'stok_awal' => $stokHistory->stok,
+                //     'kepalatokokios_id' => $user->id,
+                //     'tanggal' => now()->toDateString(),
+                // ]);
+
+                $wastes[] = $waste;
+            }
 
             DB::commit();
 
             return response()->json([
                 'status' => true,
                 'message' => 'Data waste berhasil ditambah',
-                'data' => $waste
+                'kode_waste' => $kodeWaste,
+                'data' => $wastes
             ], 201);
         } catch (\Exception $e) {
             DB::rollback();
@@ -148,31 +248,45 @@ class WasteController extends Controller
             return response()->json(['status' => false, 'message' => 'Data tidak ditemukan'], 404);
         }
 
+        $user = Auth::user();
+        // $kepalatokokiosId = $user->kepalatokokios_id;
+        
+        // if (!$kepalatokokiosId) {
+        //     return response()->json([
+        //         'status' => false,
+        //         'message' => 'User tidak memiliki kepalatokokios_id yang valid'
+        //     ], 400);
+        // }
+
         $request->validate([
             'kode_waste' => 'required|string|max:50',
             'jumlah_waste' => 'required|integer|min:1',
             'keterangan' => 'nullable|string',
         ]);
 
-        // Ambil stok history
-        $stokHistory = StokHistory::find($waste->stok_history_id);
+        // Ambil stok history dan pastikan milik kepalatokokios yang sama
+        $stokHistory = StokHistory::where('id', $waste->stok_history_id)
+            ->where('kepalatokokios_id', $user->id)
+            ->orderBy('id', 'desc')
+            ->first();
+            
         if (!$stokHistory) {
             return response()->json([
                 'status' => false,
-                'message' => 'Stok history tidak ditemukan'
+                'message' => 'Stok history tidak ditemukan atau bukan milik kepala toko kios Anda'
             ], 404);
         }
 
         DB::beginTransaction();
         try {
-            // Kembalikan stok lama
-            $stokHistory->stok += $waste->jumlah_waste;
+            // Kembalikan stok lama dengan membuat record baru
+            $restoredStok = $stokHistory->stok + $waste->jumlah_waste;
             
             // Validasi jumlah waste baru tidak melebihi stok yang tersedia
-            if ($request->jumlah_waste > $stokHistory->stok) {
+            if ($request->jumlah_waste > $restoredStok) {
                 return response()->json([
                     'status' => false,
-                    'message' => 'Jumlah waste tidak boleh melebihi sisa stok (' . $stokHistory->stok . ')'
+                    'message' => 'Jumlah waste tidak boleh melebihi sisa stok (' . $restoredStok . ')'
                 ], 422);
             }
 
@@ -182,9 +296,15 @@ class WasteController extends Controller
             $waste->keterangan = $request->keterangan;
             $waste->save();
 
-            // Update stok dengan jumlah waste baru
-            $stokHistory->stok -= $request->jumlah_waste;
-            $stokHistory->save();
+            // Create new stock history record dengan stok yang disesuaikan
+            $newStok = $restoredStok - $request->jumlah_waste;
+            StokHistory::create([
+                'roti_id' => $stokHistory->roti_id,
+                'stok' => $newStok,
+                'stok_awal' => $restoredStok,
+                'kepalatokokios_id' => $user->id,
+                'tanggal' => now()->toDateString(),
+            ]);
 
             DB::commit();
 
@@ -209,13 +329,48 @@ class WasteController extends Controller
             return response()->json(['status' => false, 'message' => 'Data tidak ditemukan'], 404);
         }
 
+        $user = Auth::user();
+        // $kepalatokokiosId = $user->kepalatokokios_id;
+        
+        // if (!$kepalatokokiosId) {
+        //     return response()->json([
+        //         'status' => false,
+        //         'message' => 'User tidak memiliki kepalatokokios_id yang valid'
+        //     ], 400);
+        // }
+
         DB::beginTransaction();
         try {
-            // Kembalikan stok ke stok_history
-            $stokHistory = StokHistory::find($waste->stok_history_id);
-            if ($stokHistory) {
-                $stokHistory->stok += $waste->jumlah_waste;
+            // Ambil stok history original untuk mendapat roti_id
+            $originalStokHistory = StokHistory::find($waste->stok_history_id);
+            if (!$originalStokHistory) {
+                DB::rollback();
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Stok history original tidak ditemukan'
+                ], 404);
+            }
+
+            // Kembalikan stok dengan membuat record baru
+            $latestStokHistory = StokHistory::where('roti_id', $originalStokHistory->roti_id)
+                ->where('kepalatokokios_id', $user->id)
+                ->orderBy('id', 'desc')
+                ->first();
+            
+            if ($latestStokHistory) {
+                $newStok = $latestStokHistory->stok + $waste->jumlah_waste;
+                $stokHistory = StokHistory::find($waste->stok_history_id);
+                $stokHistory->stok = $newStok;
+                $stokHistory->updated_at = now();
                 $stokHistory->save();
+
+                // StokHistory::create([
+                //     'roti_id' => $latestStokHistory->roti_id,
+                //     'stok' => $newStok,
+                //     'stok_awal' => $latestStokHistory->stok,
+                //     'kepalatokokios_id' => $user->id,
+                //     'tanggal' => now()->toDateString(),
+                // ]);
             }
 
             // Hapus record waste

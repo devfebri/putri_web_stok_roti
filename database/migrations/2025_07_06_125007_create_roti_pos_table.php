@@ -13,12 +13,11 @@ return new class extends Migration
     {
         Schema::create('roti_pos', function (Blueprint $table) {
             $table->id();
+            $table->integer('pos_id');
             $table->integer('roti_id');
             $table->integer('user_id');
-            $table->string('kode_po',50);
             $table->integer('jumlah_po');
-            $table->text('deskripsi');
-            $table->date('tanggal_order');
+            $table->text('deskripsi')->nullable();
             $table->tinyInteger('status')->default(0)->comment('0.proses, 1.selesai, 2.batal');
             $table->timestamps();
         });

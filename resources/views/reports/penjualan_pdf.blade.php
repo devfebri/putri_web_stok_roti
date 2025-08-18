@@ -135,16 +135,38 @@
 
 
     @if(count($penjualan_list) > 0)
+    <div class="summary-section">
+        <h3 style="margin-top: 0;">Ringkasan Penjualan</h3>
+        <div class="summary-grid">
+            <div class="summary-item">
+                <span class="summary-label">Total Transaksi:</span>
+                <span class="summary-value">{{ number_format($summary['jumlah_transaksi']) }}</span>
+            </div>
+            <div class="summary-item">
+                <span class="summary-label">Total Item Terjual:</span>
+                <span class="summary-value">{{ number_format($summary['total_item_terjual']) }}</span>
+            </div>
+            <div class="summary-item">
+                <span class="summary-label">Total Penjualan:</span>
+                <span class="summary-value currency">Rp {{ number_format($summary['total_penjualan'], 0, ',', '.') }}</span>
+            </div>
+            <div class="summary-item">
+                <span class="summary-label">Rata-rata per Transaksi:</span>
+                <span class="summary-value currency">Rp {{ number_format($summary['rata_rata_per_transaksi'], 0, ',', '.') }}</span>
+            </div>
+        </div>
+    </div>
+
     <h3>Detail Transaksi</h3>
     <table>
         <thead>
             <tr>
                 <th class="text-center" style="width: 5%;">No</th>
+                <th style="width: 15%;">Kode Transaksi</th>
                 <th style="width: 20%;">Customer</th>
                 <th style="width: 25%;">Produk</th>
-                <th class="text-center" style="width: 8%;">Qty</th>
-                <th class="text-right" style="width: 12%;">Harga</th>
-                <th class="text-right" style="width: 15%;">Total</th>
+                <th class="text-center" style="width: 8%;">Total Item</th>
+                <th class="text-right" style="width: 12%;">Total Harga</th>
                 <th class="text-center" style="width: 15%;">Tanggal</th>
             </tr>
         </thead>
@@ -152,25 +174,35 @@
             @foreach($penjualan_list as $index => $transaksi)
             <tr>
                 <td class="text-center">{{ $index + 1 }}</td>
+                <td>{{ $transaksi->kode_transaksi }}</td>
                 <td>{{ $transaksi->nama_customer ?? 'N/A' }}</td>
-                <td>{{ $transaksi->nama_roti ?? 'N/A' }}
-                    @if($transaksi->rasa_roti)
-                        <br><small style="color: #666;">{{ $transaksi->rasa_roti }}</small>
+                <td>
+                    @if(count($transaksi->transaksi_roti) > 0)
+                        @foreach($transaksi->transaksi_roti as $idx => $item)
+                            {{ $item->nama_roti }}
+                            @if($item->rasa_roti)
+                                ({{ $item->rasa_roti }})
+                            @endif
+                            <small>x{{ $item->jumlah }}</small>
+                            @if($idx < count($transaksi->transaksi_roti) - 1)
+                                <br>
+                            @endif
+                        @endforeach
+                    @else
+                        N/A
                     @endif
                 </td>
-                <td class="text-center">{{ number_format($transaksi->jumlah) }}</td>
-                <td class="text-right">Rp {{ number_format($transaksi->harga_satuan, 0, ',', '.') }}</td>
+                <td class="text-center">{{ number_format($transaksi->total_item) }}</td>
                 <td class="text-right currency">Rp {{ number_format($transaksi->total_harga, 0, ',', '.') }}</td>
-                <td class="text-center">{{ date('d/m/Y H:i', strtotime($transaksi->created_at)) }}</td>
+                <td class="text-center">{{ date('d/m/Y H:i', strtotime($transaksi->tanggal_transaksi)) }}</td>
             </tr>
             @endforeach
         </tbody>
         <tfoot>
             <tr class="total-row">
-                <td colspan="3" class="text-right"><strong>TOTAL</strong></td>
-                <td class="text-center"><strong>{{ number_format($penjualan_list->sum('jumlah')) }}</strong></td>
-                <td class="text-right">-</td>
-                <td class="text-right"><strong class="currency">Rp {{ number_format($penjualan_list->sum('total_harga'), 0, ',', '.') }}</strong></td>
+                <td colspan="4" class="text-right"><strong>TOTAL</strong></td>
+                <td class="text-center"><strong>{{ number_format($summary['total_item_terjual']) }}</strong></td>
+                <td class="text-right"><strong class="currency">Rp {{ number_format($summary['total_penjualan'], 0, ',', '.') }}</strong></td>
                 <td class="text-center">-</td>
             </tr>
         </tfoot>
