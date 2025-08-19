@@ -1505,7 +1505,34 @@ class LaporanController extends Controller
             $periode = $request->get('periode', 'harian');
             $tanggalMulai = $request->get('tanggal_mulai', now()->format('Y-m-d'));
             $tanggalSelesai = $request->get('tanggal_selesai', now()->format('Y-m-d'));
+            
+            // Handle token authentication for public PDF routes
+            $token = $request->get('token');
+            if ($token) {
+                $request->headers->set('Authorization', 'Bearer ' . $token);
+            }
+            
             $user = Auth::user();
+            
+            // If user is still null, try to authenticate using token
+            if (!$user && $token) {
+                try {
+                    $tokenModel = PersonalAccessToken::findToken($token);
+                    if ($tokenModel) {
+                        $user = $tokenModel->tokenable;
+                        Auth::setUser($user);
+                    }
+                } catch (\Exception $e) {
+                    // Token invalid, user remains null
+                }
+            }
+            
+            if (!$user) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'User tidak terautentikasi untuk PDF export'
+                ], 401);
+            }
 
             // Base query untuk transaksi
             $baseQuery = DB::table('transaksi')
@@ -1611,7 +1638,34 @@ class LaporanController extends Controller
             $periode = $request->get('periode', 'harian');
             $tanggalMulai = $request->get('tanggal_mulai', now()->format('Y-m-d'));
             $tanggalSelesai = $request->get('tanggal_selesai', now()->format('Y-m-d'));
+            
+            // Handle token authentication for public PDF routes
+            $token = $request->get('token');
+            if ($token) {
+                $request->headers->set('Authorization', 'Bearer ' . $token);
+            }
+            
             $user = Auth::user();
+            
+            // If user is still null, try to authenticate using token
+            if (!$user && $token) {
+                try {
+                    $tokenModel = PersonalAccessToken::findToken($token);
+                    if ($tokenModel) {
+                        $user = $tokenModel->tokenable;
+                        Auth::setUser($user);
+                    }
+                } catch (\Exception $e) {
+                    // Token invalid, user remains null
+                }
+            }
+            
+            if (!$user) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'User tidak terautentikasi untuk PDF export'
+                ], 401);
+            }
 
             // Base query untuk transaksi
             $baseQuery = DB::table('transaksi')
