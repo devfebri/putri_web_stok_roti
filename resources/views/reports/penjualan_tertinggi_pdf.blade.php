@@ -143,7 +143,7 @@
         <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 20px;">
             <img src="{{ public_path('img/logo.png') }}" alt="Logo" style="height: 60px; margin-right: 20px;">
             <div style="text-align: left;">
-                <h1 style="margin: 0; color: #d32f2f; font-size: 24px;">📈 Laporan Penjualan Tertinggi</h1>
+                <h1 style="margin: 0; color: #d32f2f; font-size: 24px;">Laporan Penjualan Tertinggi</h1>
                 <h2 style="margin: 5px 0; color: #666; font-size: 16px; font-weight: normal;">{{ $summary['periode_text'] ?? 'Laporan Periode' }}</h2>
                 <p style="margin: 5px 0;">{{ $summary['tanggal_mulai'] }} - {{ $summary['tanggal_selesai'] }}</p>
             </div>
@@ -166,7 +166,7 @@
     </div>
 
     <div class="performance-note">
-        <strong>📊 Catatan Performance:</strong> Laporan ini menampilkan <strong>{{ $summary['jumlah_data'] }}</strong> data penjualan tertinggi 
+        <strong>Catatan Performance:</strong> Laporan ini menampilkan <strong>{{ $summary['jumlah_data'] }}</strong> data penjualan tertinggi 
         dari total yang memenuhi kriteria minimum 5 transaksi. Data ini menunjukkan performa terbaik dalam periode yang dipilih.
     </div>
 
@@ -201,7 +201,7 @@
         </div>
     </div>
 
-    <h3>🏆 Ranking Penjualan Tertinggi</h3>
+    <h3>Ranking Penjualan Tertinggi</h3>
     <table>
         <thead>
             <tr>
@@ -233,13 +233,13 @@
                 <td class="text-right currency">Rp {{ number_format($penjualan['rata_rata_transaksi'], 0, ',', '.') }}</td>
                 <td class="text-center">
                     @if($index == 0)
-                        🥇 TERBAIK
+                        TERBAIK
                     @elseif($index == 1)
-                        🥈 SANGAT BAIK
+                        SANGAT BAIK
                     @elseif($index == 2)
-                        🥉 BAIK
+                        BAIK
                     @else
-                        ✅ BAGUS
+                        BAGUS
                     @endif
                 </td>
             </tr>
@@ -264,7 +264,7 @@
     @endif
 
     <div class="footer">
-        <p>Laporan Penjualan Tertinggi - Digenerate secara otomatis pada {{ date('d/m/Y H:i:s') }}</p>
+    <p>Laporan Penjualan Tertinggi - Digenerate secara otomatis pada {{ date('d/m/Y H:i:s') }}</p>
         <p>© {{ date('Y') }} Putri Bakery - Sistem Manajemen Stok Roti</p>
     </div>
 </body>

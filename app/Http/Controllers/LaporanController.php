@@ -1695,19 +1695,63 @@ class LaporanController extends Controller
     public function penjualanTerendahPdf(Request $request)
     {
         try {
-            $periode = $request->get('periode', 'harian');
-            $tanggalMulai = $request->get('tanggal_mulai', now()->format('Y-m-d'));
-            $tanggalSelesai = $request->get('tanggal_selesai', now()->format('Y-m-d'));
-            
-            // Handle token authentication for public PDF routes
+            $request->validate([
+                'periode' => 'required|string',
+                'tanggal_mulai' => 'required|date',
+                'tanggal_selesai' => 'required|date',
+                'token' => 'nullable|string', // Token dari query parameter
+            ]);
+
+            // Jika token ada di query parameter, set ke header
             $token = $request->get('token');
             if ($token) {
                 $request->headers->set('Authorization', 'Bearer ' . $token);
             }
-            
+
+            $periode = $request->periode;
+            $tanggalMulai = $request->tanggal_mulai;
+            $tanggalSelesai = $request->tanggal_selesai;
+
+            // Query laporan penjualan dengan struktur database yang benar
+            $penjualanQuery = DB::table('transaksi')
+                ->select(
+                    'transaksi.id as transaksi_id',
+                    'transaksi.kode_transaksi',
+                    'transaksi.nama_customer',
+                    'transaksi.total_harga',
+                    'transaksi.metode_pembayaran',
+                    'transaksi.tanggal_transaksi',
+                    'transaksi.created_at',
+                    'users.name as user_name',
+                    'transaksi_roti.id as item_id',
+                    'transaksi_roti.jumlah',
+                    'transaksi_roti.harga_satuan',
+                    'rotis.nama_roti',
+                    'rotis.rasa_roti',
+                    DB::raw('(transaksi_roti.harga_satuan * transaksi_roti.jumlah) as total_nilai_item')
+                )
+                ->join('users', 'users.id', '=', 'transaksi.user_id')
+                ->join('transaksi_roti', 'transaksi_roti.transaksi_id', '=', 'transaksi.id')
+                ->join('rotis', 'rotis.id', '=', 'transaksi_roti.roti_id');
+
+            // Filter berdasarkan periode tanggal
+            switch ($periode) {
+                case 'harian':
+                    $penjualanQuery->whereDate('transaksi.tanggal_transaksi', '>=', $tanggalMulai)
+                        ->whereDate('transaksi.tanggal_transaksi', '<=', $tanggalSelesai);
+                    break;
+                case 'mingguan':
+                case 'bulanan':
+                case 'tahunan':
+                    $penjualanQuery->where('transaksi.tanggal_transaksi', '>=', $tanggalMulai . ' 00:00:00')
+                        ->where('transaksi.tanggal_transaksi', '<=', $tanggalSelesai . ' 23:59:59');
+                    break;
+            }
+
+            // Filter berdasarkan role user yang login
             $user = Auth::user();
-            
-            // If user is still null, try to authenticate using token
+
+            // Jika user null, coba authenticate via token di query parameter
             if (!$user && $token) {
                 try {
                     $tokenModel = PersonalAccessToken::findToken($token);
@@ -1716,10 +1760,10 @@ class LaporanController extends Controller
                         Auth::setUser($user);
                     }
                 } catch (\Exception $e) {
-                    // Token invalid, user remains null
+                    // Token invalid, user tetap null
                 }
             }
-            
+
             if (!$user) {
                 return response()->json([
                     'status' => false,
@@ -1727,56 +1771,44 @@ class LaporanController extends Controller
                 ], 401);
             }
 
-            // Base query untuk transaksi
-            $baseQuery = DB::table('transaksi')
-                ->join('users', 'transaksi.user_id', '=', 'users.id')
-                ->join('transaksi_roti', 'transaksi.id', '=', 'transaksi_roti.transaksi_id')
-                ->join('rotis', 'transaksi_roti.roti_id', '=', 'rotis.id')
-                ->whereBetween('transaksi.tanggal_transaksi', [$tanggalMulai, $tanggalSelesai]);
+            $userRole = $user->role;
+            $userId = $user->id;
 
-            // Filter berdasarkan role
-            if ($user->role === 'frontliner') {
-                $baseQuery->where('transaksi.user_id', $user->id);
+            if (strtolower($userRole) === 'frontliner') {
+                $penjualanQuery->where('transaksi.user_id', $userId);
             }
 
-            $rawData = $baseQuery->select(
-                'transaksi.tanggal_transaksi',
-                'transaksi.user_id',
-                'users.name as nama_kasir',
-                'transaksi.total_harga',
-                'transaksi_roti.jumlah'
-            )->get();
+            $penjualanData = $penjualanQuery->orderBy('transaksi.created_at', 'desc')->get();
 
-            if ($rawData->isEmpty()) {
+            if ($penjualanData->isEmpty()) {
                 return response()->json([
                     'status' => false,
                     'message' => 'Tidak ada data transaksi dalam periode tersebut'
                 ], 404);
             }
 
-            // Group data dan kalkulasi
-            $grouped = $rawData->groupBy(function($item) {
-                return $item->user_id . '_' . Carbon::parse($item->tanggal_transaksi)->format('Y-m-d');
+            // Group data per hari per user (konsisten dengan laporan tertinggi)
+            $grouped = $penjualanData->groupBy(function($item) {
+                return $item->user_name . '_' . Carbon::parse($item->tanggal_transaksi)->format('Y-m-d');
             })->map(function($group) {
                 $firstItem = $group->first();
                 $totalHarga = $group->sum('total_harga');
                 $totalItem = $group->sum('jumlah');
                 $jumlahTransaksi = $group->count();
-
                 return [
                     'tanggal_transaksi' => Carbon::parse($firstItem->tanggal_transaksi)->format('Y-m-d'),
-                    'nama_kasir' => $firstItem->nama_kasir,
+                    'nama_kasir' => $firstItem->user_name,
                     'jumlah_transaksi' => $jumlahTransaksi,
                     'total_item' => $totalItem,
                     'total_harga' => $totalHarga,
                     'rata_rata_transaksi' => $jumlahTransaksi > 0 ? $totalHarga / $jumlahTransaksi : 0,
                 ];
-            })->sortBy('total_harga');
+            })->sortBy('total_harga')->values(); // TERENDAH: sortBy asc
 
             // Filter minimum 5 transaksi
             $filtered = $grouped->filter(function($item) {
                 return $item['jumlah_transaksi'] >= 5;
-            });
+            })->values();
 
             if ($filtered->isEmpty()) {
                 return response()->json([
@@ -1788,15 +1820,14 @@ class LaporanController extends Controller
             // Ambil 20% terbawah
             $count = $filtered->count();
             $bottomCount = max(1, intval($count * 0.2));
-            $penjualanTerendah = $filtered->take($bottomCount);
+            $penjualanTerendah = $filtered->take($bottomCount)->values();
 
-            // Summary data
+            // Summary data konsisten dengan view
             $summary = [
-                'total_penjualan' => (float) $penjualanTerendah->sum(function($item){ return is_numeric($item['total_harga'] ?? null) ? $item['total_harga'] : 0; }),
-                'total_item_terjual' => (int) $penjualanTerendah->sum(function($item){ return is_numeric($item['total_item'] ?? null) ? $item['total_item'] : 0; }),
-                'jumlah_transaksi' => (int) $penjualanTerendah->sum(function($item){ return is_numeric($item['jumlah_transaksi'] ?? null) ? $item['jumlah_transaksi'] : 0; }),
-                'rata_rata_per_hari' => $penjualanTerendah->count() > 0 ? 
-                    ((float) $penjualanTerendah->sum(function($item){ return is_numeric($item['total_harga'] ?? null) ? $item['total_harga'] : 0; }) / $penjualanTerendah->count()) : 0,
+                'total_penjualan' => $penjualanTerendah->sum('total_harga'),
+                'total_item_terjual' => $penjualanTerendah->sum('total_item'),
+                'jumlah_transaksi' => $penjualanTerendah->sum('jumlah_transaksi'),
+                'rata_rata_per_hari' => $penjualanTerendah->count() > 0 ? $penjualanTerendah->sum('total_harga') / $penjualanTerendah->count() : 0,
                 'periode' => $periode,
                 'periode_text' => 'Laporan Penjualan Terendah - ' . $this->getPeriodeText($periode, $tanggalMulai, $tanggalSelesai),
                 'tanggal_mulai' => Carbon::parse($tanggalMulai)->format('d/m/Y'),

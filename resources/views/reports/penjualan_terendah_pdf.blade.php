@@ -1,3 +1,12 @@
+@php
+    // Pastikan semua nilai summary numeric
+    $summary['jumlah_data'] = (int) ($summary['jumlah_data'] ?? 0);
+    $summary['jumlah_transaksi'] = (int) ($summary['jumlah_transaksi'] ?? 0);
+    $summary['total_item_terjual'] = (int) ($summary['total_item_terjual'] ?? 0);
+    $summary['total_penjualan'] = (float) ($summary['total_penjualan'] ?? 0);
+    $summary['rata_rata_per_hari'] = (float) ($summary['rata_rata_per_hari'] ?? 0);
+@endphp
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -150,7 +159,7 @@
         <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 20px;">
             <img src="{{ public_path('img/logo.png') }}" alt="Logo" style="height: 60px; margin-right: 20px;">
             <div style="text-align: left;">
-                <h1 style="margin: 0; color: #ff5722; font-size: 24px;">📉 Laporan Penjualan Terendah</h1>
+                <h1 style="margin: 0; color: #ff5722; font-size: 24px;">Laporan Penjualan Terendah</h1>
                 <h2 style="margin: 5px 0; color: #666; font-size: 16px; font-weight: normal;">{{ $summary['periode_text'] ?? 'Laporan Periode' }}</h2>
                 <p style="margin: 5px 0;">{{ $summary['tanggal_mulai'] }} - {{ $summary['tanggal_selesai'] }}</p>
             </div>
@@ -173,13 +182,13 @@
     </div>
 
     <div class="improvement-note">
-        <strong>🎯 Area Improvement:</strong> Laporan ini menampilkan <strong>{{ $summary['jumlah_data'] }}</strong> data penjualan terendah 
+        <strong>Area Improvement:</strong> Laporan ini menampilkan <strong>{{ $summary['jumlah_data'] }}</strong> data penjualan terendah 
         dari total yang memenuhi kriteria minimum 5 transaksi. Data ini dapat digunakan untuk identifikasi area yang memerlukan perbaikan.
     </div>
 
     @if(count($penjualan_list) > 0)
     <div class="summary-section">
-        <h3 style="margin-top: 0;">📊 Ringkasan Penjualan Terendah</h3>
+        <h3 style="margin-top: 0;">Ringkasan Penjualan Terendah</h3>
         <div class="summary-grid">
             <div class="summary-item">
                 <span class="summary-label">Hari Yang Memerlukan Perhatian:</span>
@@ -208,7 +217,7 @@
         </div>
     </div>
 
-    <h3>⚠️ Data Penjualan Yang Memerlukan Perhatian</h3>
+    <h3>Data Penjualan Yang Memerlukan Perhatian</h3>
     <table>
         <thead>
             <tr>
