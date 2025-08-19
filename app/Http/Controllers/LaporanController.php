@@ -1563,7 +1563,7 @@ class LaporanController extends Controller
 
             // Group data dan kalkulasi
             $grouped = $rawData->groupBy(function($item) {
-                return $item->users_id . '_' . Carbon::parse($item->tanggal_transaksi)->format('Y-m-d');
+                return $item->user_id . '_' . Carbon::parse($item->tanggal_transaksi)->format('Y-m-d');
             })->map(function($group) {
                 $firstItem = $group->first();
                 $totalHarga = $group->sum('total_harga');
@@ -1696,7 +1696,7 @@ class LaporanController extends Controller
 
             // Group data dan kalkulasi
             $grouped = $rawData->groupBy(function($item) {
-                return $item->users_id . '_' . Carbon::parse($item->tanggal_transaksi)->format('Y-m-d');
+                return $item->user_id . '_' . Carbon::parse($item->tanggal_transaksi)->format('Y-m-d');
             })->map(function($group) {
                 $firstItem = $group->first();
                 $totalHarga = $group->sum('total_harga');
