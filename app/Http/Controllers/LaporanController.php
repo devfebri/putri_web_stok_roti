@@ -457,6 +457,238 @@ class LaporanController extends Controller
         ]);
     }
 
+    public function penjualanTertinggiReportApi(Request $request)
+    {
+        $request->validate([
+            'periode' => 'required|string',
+            'tanggal_mulai' => 'required|date',
+            'tanggal_selesai' => 'required|date',
+        ]);
+
+        $periode = $request->periode;
+        $tanggalMulai = $request->tanggal_mulai;
+        $tanggalSelesai = $request->tanggal_selesai;
+
+        // Get user info from token
+        $user = Auth::user();
+        $userRole = $user->role ?? '';
+        $userId = $user->id;
+
+        // Query laporan penjualan dengan struktur database yang benar
+        $penjualanQuery = DB::table('transaksi')
+            ->select(
+                'transaksi.id as transaksi_id',
+                'transaksi.kode_transaksi',
+                'transaksi.nama_customer',
+                'transaksi.total_harga',
+                'transaksi.metode_pembayaran',
+                'transaksi.tanggal_transaksi',
+                'transaksi.created_at',
+                'users.name as user_name',
+                'transaksi_roti.id as item_id',
+                'transaksi_roti.jumlah',
+                'transaksi_roti.harga_satuan',
+                'rotis.nama_roti',
+                'rotis.rasa_roti',
+                DB::raw('(transaksi_roti.harga_satuan * transaksi_roti.jumlah) as total_nilai_item')
+            )
+            ->join('users', 'users.id', '=', 'transaksi.user_id')
+            ->join('transaksi_roti', 'transaksi_roti.transaksi_id', '=', 'transaksi.id')
+            ->join('rotis', 'rotis.id', '=', 'transaksi_roti.roti_id')
+            ->whereBetween('transaksi.tanggal_transaksi', [$tanggalMulai, $tanggalSelesai]);
+
+        // Filter berdasarkan role
+        if (strtolower($userRole) === 'frontliner') {
+            // Frontliner hanya melihat transaksi yang mereka buat sendiri
+            $penjualanQuery->where('transaksi.user_id', $userId);
+        }
+
+        // Order by total_harga DESC untuk penjualan tertinggi
+        $penjualanData = $penjualanQuery->orderBy('transaksi.total_harga', 'desc')->get();
+
+        // Group by transaksi_id untuk mengumpulkan total per transaksi
+        $transaksiGrouped = $penjualanData->groupBy('transaksi_id');
+        
+        // Ambil top 20% atau minimal 5 transaksi dengan nilai tertinggi
+        $totalTransaksi = $transaksiGrouped->count();
+        $topCount = max(5, ceil($totalTransaksi * 0.2));
+        
+        // Urutkan transaksi berdasarkan total_harga dan ambil yang tertinggi
+        $topTransaksi = $transaksiGrouped->sortByDesc(function($group) {
+            return $group->first()->total_harga;
+        })->take($topCount);
+
+        // Format data untuk response
+        $formattedTransaksi = $topTransaksi->map(function($group) {
+            $firstItem = $group->first();
+            return [
+                'id' => $firstItem->transaksi_id,
+                'kode_transaksi' => $firstItem->kode_transaksi ?: ('TRX' . str_pad($firstItem->transaksi_id, 8, '0', STR_PAD_LEFT)),
+                'nama_customer' => $firstItem->nama_customer,
+                'total_harga' => $firstItem->total_harga,
+                'metode_pembayaran' => $firstItem->metode_pembayaran,
+                'tanggal_transaksi' => $firstItem->tanggal_transaksi,
+                'created_at' => $firstItem->created_at,
+                'user' => [
+                    'name' => $firstItem->user_name
+                ],
+                'transaksi_roti' => $group->map(function($item) {
+                    return [
+                        'id' => $item->item_id,
+                        'jumlah' => $item->jumlah,
+                        'harga_satuan' => $item->harga_satuan,
+                        'roti' => [
+                            'nama_roti' => $item->nama_roti,
+                            'rasa_roti' => $item->rasa_roti,
+                        ],
+                    ];
+                })->toArray(),
+            ];
+        })->values();
+
+        // Hitung summary untuk transaksi tertinggi
+        $topTransaksiFlat = $topTransaksi->flatten(1);
+        $summary = [
+            'total_penjualan' => $topTransaksiFlat->sum('total_nilai_item'),
+            'total_item_terjual' => $topTransaksiFlat->sum('jumlah'),
+            'jumlah_transaksi' => $topTransaksi->count(),
+            'rata_rata_per_transaksi' => $topTransaksi->count() > 0 ? 
+                $topTransaksiFlat->sum('total_nilai_item') / $topTransaksi->count() : 0,
+            'periode' => $periode,
+            'tanggal_mulai' => $tanggalMulai,
+            'tanggal_selesai' => $tanggalSelesai,
+            'user_role' => $userRole,
+            'filtered_by_frontliner' => strtolower($userRole) === 'frontliner',
+            'type' => 'penjualan_tertinggi',
+            'top_count' => $topCount,
+            'total_all_transactions' => $totalTransaksi,
+        ];
+
+        return response()->json([
+            'status' => true,
+            'data' => [
+                'penjualan_list' => $formattedTransaksi,
+                'summary' => $summary,
+            ]
+        ]);
+    }
+
+    public function penjualanTerendahReportApi(Request $request)
+    {
+        $request->validate([
+            'periode' => 'required|string',
+            'tanggal_mulai' => 'required|date',
+            'tanggal_selesai' => 'required|date',
+        ]);
+
+        $periode = $request->periode;
+        $tanggalMulai = $request->tanggal_mulai;
+        $tanggalSelesai = $request->tanggal_selesai;
+
+        // Get user info from token
+        $user = Auth::user();
+        $userRole = $user->role ?? '';
+        $userId = $user->id;
+
+        // Query laporan penjualan dengan struktur database yang benar
+        $penjualanQuery = DB::table('transaksi')
+            ->select(
+                'transaksi.id as transaksi_id',
+                'transaksi.kode_transaksi',
+                'transaksi.nama_customer',
+                'transaksi.total_harga',
+                'transaksi.metode_pembayaran',
+                'transaksi.tanggal_transaksi',
+                'transaksi.created_at',
+                'users.name as user_name',
+                'transaksi_roti.id as item_id',
+                'transaksi_roti.jumlah',
+                'transaksi_roti.harga_satuan',
+                'rotis.nama_roti',
+                'rotis.rasa_roti',
+                DB::raw('(transaksi_roti.harga_satuan * transaksi_roti.jumlah) as total_nilai_item')
+            )
+            ->join('users', 'users.id', '=', 'transaksi.user_id')
+            ->join('transaksi_roti', 'transaksi_roti.transaksi_id', '=', 'transaksi.id')
+            ->join('rotis', 'rotis.id', '=', 'transaksi_roti.roti_id')
+            ->whereBetween('transaksi.tanggal_transaksi', [$tanggalMulai, $tanggalSelesai]);
+
+        // Filter berdasarkan role
+        if (strtolower($userRole) === 'frontliner') {
+            // Frontliner hanya melihat transaksi yang mereka buat sendiri
+            $penjualanQuery->where('transaksi.user_id', $userId);
+        }
+
+        // Order by total_harga ASC untuk penjualan terendah
+        $penjualanData = $penjualanQuery->orderBy('transaksi.total_harga', 'asc')->get();
+
+        // Group by transaksi_id untuk mengumpulkan total per transaksi
+        $transaksiGrouped = $penjualanData->groupBy('transaksi_id');
+        
+        // Ambil bottom 20% atau minimal 5 transaksi dengan nilai terendah
+        $totalTransaksi = $transaksiGrouped->count();
+        $bottomCount = max(5, ceil($totalTransaksi * 0.2));
+        
+        // Urutkan transaksi berdasarkan total_harga dan ambil yang terendah
+        $bottomTransaksi = $transaksiGrouped->sortBy(function($group) {
+            return $group->first()->total_harga;
+        })->take($bottomCount);
+
+        // Format data untuk response
+        $formattedTransaksi = $bottomTransaksi->map(function($group) {
+            $firstItem = $group->first();
+            return [
+                'id' => $firstItem->transaksi_id,
+                'kode_transaksi' => $firstItem->kode_transaksi ?: ('TRX' . str_pad($firstItem->transaksi_id, 8, '0', STR_PAD_LEFT)),
+                'nama_customer' => $firstItem->nama_customer,
+                'total_harga' => $firstItem->total_harga,
+                'metode_pembayaran' => $firstItem->metode_pembayaran,
+                'tanggal_transaksi' => $firstItem->tanggal_transaksi,
+                'created_at' => $firstItem->created_at,
+                'user' => [
+                    'name' => $firstItem->user_name
+                ],
+                'transaksi_roti' => $group->map(function($item) {
+                    return [
+                        'id' => $item->item_id,
+                        'jumlah' => $item->jumlah,
+                        'harga_satuan' => $item->harga_satuan,
+                        'roti' => [
+                            'nama_roti' => $item->nama_roti,
+                            'rasa_roti' => $item->rasa_roti,
+                        ],
+                    ];
+                })->toArray(),
+            ];
+        })->values();
+
+        // Hitung summary untuk transaksi terendah
+        $bottomTransaksiFlat = $bottomTransaksi->flatten(1);
+        $summary = [
+            'total_penjualan' => $bottomTransaksiFlat->sum('total_nilai_item'),
+            'total_item_terjual' => $bottomTransaksiFlat->sum('jumlah'),
+            'jumlah_transaksi' => $bottomTransaksi->count(),
+            'rata_rata_per_transaksi' => $bottomTransaksi->count() > 0 ? 
+                $bottomTransaksiFlat->sum('total_nilai_item') / $bottomTransaksi->count() : 0,
+            'periode' => $periode,
+            'tanggal_mulai' => $tanggalMulai,
+            'tanggal_selesai' => $tanggalSelesai,
+            'user_role' => $userRole,
+            'filtered_by_frontliner' => strtolower($userRole) === 'frontliner',
+            'type' => 'penjualan_terendah',
+            'bottom_count' => $bottomCount,
+            'total_all_transactions' => $totalTransaksi,
+        ];
+
+        return response()->json([
+            'status' => true,
+            'data' => [
+                'penjualan_list' => $formattedTransaksi,
+                'summary' => $summary,
+            ]
+        ]);
+    }
+
     public function dashboardStatsApi()
     {
         // Get user info from token
@@ -1262,6 +1494,218 @@ class LaporanController extends Controller
             return response()->json([
                 'status' => false,
                 'message' => 'Gagal generate PDF Stok: ' . $e->getMessage(),
+                'error' => $e->getTraceAsString()
+            ], 500);
+        }
+    }
+
+    public function penjualanTertinggiPdf(Request $request)
+    {
+        try {
+            $periode = $request->get('periode', 'harian');
+            $tanggalMulai = $request->get('tanggal_mulai', now()->format('Y-m-d'));
+            $tanggalSelesai = $request->get('tanggal_selesai', now()->format('Y-m-d'));
+            $user = Auth::user();
+
+            // Base query untuk transaksi
+            $baseQuery = DB::table('transaksi')
+                ->join('users', 'transaksi.users_id', '=', 'users.id')
+                ->join('transaksi_roti', 'transaksi.id', '=', 'transaksi_roti.transaksi_id')
+                ->join('rotis', 'transaksi_roti.roti_id', '=', 'rotis.id')
+                ->whereBetween('transaksi.tanggal_transaksi', [$tanggalMulai, $tanggalSelesai]);
+
+            // Filter berdasarkan role
+            if ($user->role === 'frontliner') {
+                $baseQuery->where('transaksi.users_id', $user->id);
+            }
+
+            $rawData = $baseQuery->select(
+                'transaksi.tanggal_transaksi',
+                'transaksi.users_id',
+                'users.name as nama_kasir',
+                'transaksi.total_harga',
+                'transaksi_roti.jumlah'
+            )->get();
+
+            if ($rawData->isEmpty()) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Tidak ada data transaksi dalam periode tersebut'
+                ], 404);
+            }
+
+            // Group data dan kalkulasi
+            $grouped = $rawData->groupBy(function($item) {
+                return $item->users_id . '_' . Carbon::parse($item->tanggal_transaksi)->format('Y-m-d');
+            })->map(function($group) {
+                $firstItem = $group->first();
+                $totalHarga = $group->sum('total_harga');
+                $totalItem = $group->sum('jumlah');
+                $jumlahTransaksi = $group->count();
+
+                return [
+                    'tanggal_transaksi' => Carbon::parse($firstItem->tanggal_transaksi)->format('Y-m-d'),
+                    'nama_kasir' => $firstItem->nama_kasir,
+                    'jumlah_transaksi' => $jumlahTransaksi,
+                    'total_item' => $totalItem,
+                    'total_harga' => $totalHarga,
+                    'rata_rata_transaksi' => $jumlahTransaksi > 0 ? $totalHarga / $jumlahTransaksi : 0,
+                ];
+            })->sortByDesc('total_harga');
+
+            // Filter minimum 5 transaksi
+            $filtered = $grouped->filter(function($item) {
+                return $item['jumlah_transaksi'] >= 5;
+            });
+
+            if ($filtered->isEmpty()) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Tidak ada data dengan minimum 5 transaksi'
+                ], 404);
+            }
+
+            // Ambil 20% teratas
+            $count = $filtered->count();
+            $topCount = max(1, intval($count * 0.2));
+            $penjualanTertinggi = $filtered->take($topCount);
+
+            // Summary data
+            $summary = [
+                'total_penjualan' => $penjualanTertinggi->sum('total_harga'),
+                'total_item_terjual' => $penjualanTertinggi->sum('total_item'),
+                'jumlah_transaksi' => $penjualanTertinggi->sum('jumlah_transaksi'),
+                'rata_rata_per_hari' => $penjualanTertinggi->count() > 0 ? 
+                    $penjualanTertinggi->sum('total_harga') / $penjualanTertinggi->count() : 0,
+                'periode' => $periode,
+                'periode_text' => 'Laporan Penjualan Tertinggi - ' . $this->getPeriodeText($periode, $tanggalMulai, $tanggalSelesai),
+                'tanggal_mulai' => Carbon::parse($tanggalMulai)->format('d/m/Y'),
+                'tanggal_selesai' => Carbon::parse($tanggalSelesai)->format('d/m/Y'),
+                'jumlah_data' => $penjualanTertinggi->count(),
+                'presentase_data' => round(($penjualanTertinggi->count() / $count) * 100, 1) . '%'
+            ];
+
+            // Generate PDF
+            $pdf = Pdf::loadView('reports.penjualan_tertinggi_pdf', [
+                'penjualan_list' => $penjualanTertinggi,
+                'summary' => $summary,
+            ]);
+
+            $pdf->setPaper('A4', 'portrait');
+            $filename = 'laporan-penjualan-tertinggi-' . $periode . '-' . date('Y-m-d-H-i-s') . '.pdf';
+
+            return $pdf->download($filename);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Gagal generate PDF: ' . $e->getMessage(),
+                'error' => $e->getTraceAsString()
+            ], 500);
+        }
+    }
+
+    public function penjualanTerendahPdf(Request $request)
+    {
+        try {
+            $periode = $request->get('periode', 'harian');
+            $tanggalMulai = $request->get('tanggal_mulai', now()->format('Y-m-d'));
+            $tanggalSelesai = $request->get('tanggal_selesai', now()->format('Y-m-d'));
+            $user = Auth::user();
+
+            // Base query untuk transaksi
+            $baseQuery = DB::table('transaksi')
+                ->join('users', 'transaksi.users_id', '=', 'users.id')
+                ->join('transaksi_roti', 'transaksi.id', '=', 'transaksi_roti.transaksi_id')
+                ->join('rotis', 'transaksi_roti.roti_id', '=', 'rotis.id')
+                ->whereBetween('transaksi.tanggal_transaksi', [$tanggalMulai, $tanggalSelesai]);
+
+            // Filter berdasarkan role
+            if ($user->role === 'frontliner') {
+                $baseQuery->where('transaksi.users_id', $user->id);
+            }
+
+            $rawData = $baseQuery->select(
+                'transaksi.tanggal_transaksi',
+                'transaksi.users_id',
+                'users.name as nama_kasir',
+                'transaksi.total_harga',
+                'transaksi_roti.jumlah'
+            )->get();
+
+            if ($rawData->isEmpty()) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Tidak ada data transaksi dalam periode tersebut'
+                ], 404);
+            }
+
+            // Group data dan kalkulasi
+            $grouped = $rawData->groupBy(function($item) {
+                return $item->users_id . '_' . Carbon::parse($item->tanggal_transaksi)->format('Y-m-d');
+            })->map(function($group) {
+                $firstItem = $group->first();
+                $totalHarga = $group->sum('total_harga');
+                $totalItem = $group->sum('jumlah');
+                $jumlahTransaksi = $group->count();
+
+                return [
+                    'tanggal_transaksi' => Carbon::parse($firstItem->tanggal_transaksi)->format('Y-m-d'),
+                    'nama_kasir' => $firstItem->nama_kasir,
+                    'jumlah_transaksi' => $jumlahTransaksi,
+                    'total_item' => $totalItem,
+                    'total_harga' => $totalHarga,
+                    'rata_rata_transaksi' => $jumlahTransaksi > 0 ? $totalHarga / $jumlahTransaksi : 0,
+                ];
+            })->sortBy('total_harga');
+
+            // Filter minimum 5 transaksi
+            $filtered = $grouped->filter(function($item) {
+                return $item['jumlah_transaksi'] >= 5;
+            });
+
+            if ($filtered->isEmpty()) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Tidak ada data dengan minimum 5 transaksi'
+                ], 404);
+            }
+
+            // Ambil 20% terbawah
+            $count = $filtered->count();
+            $bottomCount = max(1, intval($count * 0.2));
+            $penjualanTerendah = $filtered->take($bottomCount);
+
+            // Summary data
+            $summary = [
+                'total_penjualan' => $penjualanTerendah->sum('total_harga'),
+                'total_item_terjual' => $penjualanTerendah->sum('total_item'),
+                'jumlah_transaksi' => $penjualanTerendah->sum('jumlah_transaksi'),
+                'rata_rata_per_hari' => $penjualanTerendah->count() > 0 ? 
+                    $penjualanTerendah->sum('total_harga') / $penjualanTerendah->count() : 0,
+                'periode' => $periode,
+                'periode_text' => 'Laporan Penjualan Terendah - ' . $this->getPeriodeText($periode, $tanggalMulai, $tanggalSelesai),
+                'tanggal_mulai' => Carbon::parse($tanggalMulai)->format('d/m/Y'),
+                'tanggal_selesai' => Carbon::parse($tanggalSelesai)->format('d/m/Y'),
+                'jumlah_data' => $penjualanTerendah->count(),
+                'presentase_data' => round(($penjualanTerendah->count() / $count) * 100, 1) . '%'
+            ];
+
+            // Generate PDF
+            $pdf = Pdf::loadView('reports.penjualan_terendah_pdf', [
+                'penjualan_list' => $penjualanTerendah,
+                'summary' => $summary,
+            ]);
+
+            $pdf->setPaper('A4', 'portrait');
+            $filename = 'laporan-penjualan-terendah-' . $periode . '-' . date('Y-m-d-H-i-s') . '.pdf';
+
+            return $pdf->download($filename);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Gagal generate PDF: ' . $e->getMessage(),
                 'error' => $e->getTraceAsString()
             ], 500);
         }
