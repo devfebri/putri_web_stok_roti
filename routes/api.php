@@ -105,6 +105,19 @@ Route::get('/test-next-kode-po-public', function () {
     }
 });
 
+// Test update status endpoint
+Route::post('/test-update-status/{id}', function (\Illuminate\Http\Request $request, $id) {
+    try {
+        $controller = new \App\Http\Controllers\RotiPoController();
+        return $controller->updateStatusApi($request, $id);
+    } catch (\Exception $e) {
+        return response()->json([
+            'status' => false,
+            'message' => 'Error: ' . $e->getMessage()
+        ], 500);
+    }
+});
+
 // Test endpoint public untuk debug next kode WASTE (tanpa auth)
 Route::get('/test-next-kode-waste-public', function () {
     try {
@@ -905,6 +918,7 @@ Route::prefix('kepalabakery')->middleware(['auth:sanctum', KepalaBakeryMiddlewar
     Route::delete('/pos/{pos}', [PosController::class, 'destroyApi'])->name('pos_destroy');
     Route::post('/pos/{id}/delivery', [PosController::class, 'deliveryPoApi'])->name('pos_delivery');
     Route::post('/pos/{id}/selesai', [PosController::class, 'selesaiPoApi'])->name('pos_selesai');
+    Route::post('/pos/{id}/update-status', [RotiPoController::class, 'updateStatusApi'])->name('pos_update_status');
 
     // CRUD Roti PO
     Route::get('/rotipo', [RotiPoController::class, 'indexApi'])->name('rotipo_index');      // List semua roti
@@ -936,6 +950,7 @@ Route::prefix('kepalatokokios')->middleware(['auth:sanctum', KepalaTokoKiosMiddl
     Route::delete('/pos/{pos}', [PosController::class, 'destroyApi'])->name('pos_destroy');
     Route::post('/pos/{id}/delivery', [PosController::class, 'deliveryPoApi'])->name('pos_delivery');
     Route::post('/pos/{id}/selesai', [PosController::class, 'selesaiPoApi'])->name('pos_selesai');
+    Route::post('/pos/{id}/update-status', [RotiPoController::class, 'updateStatusApi'])->name('pos_update_status');
 
     //CRUD Roti PO (legacy)
     Route::get('/rotipo', [RotiPoController::class, 'indexApi'])->name('rotipo_index');      // List semua roti

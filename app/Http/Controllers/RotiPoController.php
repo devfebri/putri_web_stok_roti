@@ -277,4 +277,55 @@ class RotiPoController extends Controller
             ], 500);
         }
     }
+
+    public function updateStatusApi(Request $request, $id)
+    {
+        $request->validate([
+            'status' => 'required|integer|in:0,1,2,3,4'
+        ]);
+
+        // First, try to find in the pos table (new structure)
+        $pos = Pos::find($id);
+        
+        if (!$pos) {
+            return response()->json(['status' => false, 'message' => 'Data tidak ditemukan'], 404);
+        }
+
+        try {
+            $oldStatus = $pos->status;
+            $newStatus = $request->status;
+            
+            // Allow any status change for now (remove strict validation)
+            // This is because we're implementing a new status system
+            
+            $pos->status = $newStatus;
+            $pos->save();
+
+            $statusLabels = [
+                0 => 'Pending',
+                1 => 'Proses', 
+                2 => 'Ditolak',
+                3 => 'Delivery',
+                4 => 'Selesai'
+            ];
+
+            return response()->json([
+                'status' => true,
+                'message' => "Status berhasil diubah menjadi {$statusLabels[$newStatus]}",
+                'data' => [
+                    'id' => $pos->id,
+                    'kode_po' => $pos->kode_po,
+                    'old_status' => $oldStatus,
+                    'new_status' => $newStatus,
+                    'status_label' => $statusLabels[$newStatus]
+                ]
+            ]);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Gagal mengubah status: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }
