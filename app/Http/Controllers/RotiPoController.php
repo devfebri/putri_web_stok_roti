@@ -302,13 +302,27 @@ class RotiPoController extends Controller
             $pos->save();
             if($newStatus==4){
                 foreach ($pos->rotiPos as $rotiPo) {
-                    $stokHistory = new StokHistory();
-                    $stokHistory->roti_id = $rotiPo->roti_id;
-                    $stokHistory->stok = $rotiPo->jumlah_po;
-                    $stokHistory->stok_awal = $rotiPo->jumlah_po;
-                    $stokHistory->kepalatokokios_id = $pos->user_id;
-                    $stokHistory->tanggal = Carbon::now();
-                    $stokHistory->save();
+                    $tanggal = Carbon::now()->toDateString();
+                    $stokHistory = \App\Models\StokHistory::where('roti_id', $rotiPo->roti_id)
+                        ->where('kepalatokokios_id', $pos->user_id)
+                        ->whereDate('tanggal', $tanggal)
+                        ->first();
+
+                    if ($stokHistory) {
+                        // Update stok_masuk dan stok_akhir jika sudah ada
+                        $stokHistory->stok += $rotiPo->jumlah_po;
+                        $stokHistory->stok_awal += $rotiPo->jumlah_po;
+                        $stokHistory->save();
+                    } else {
+                        // Insert baru
+                        $stokHistory = new \App\Models\StokHistory();
+                        $stokHistory->roti_id = $rotiPo->roti_id;
+                        $stokHistory->stok_awal = $rotiPo->jumlah_po;
+                        $stokHistory->stok = $rotiPo->jumlah_po;
+                        $stokHistory->kepalatokokios_id = $pos->user_id;
+                        $stokHistory->tanggal = $tanggal;
+                        $stokHistory->save();
+                    }
                 }
             }
 
