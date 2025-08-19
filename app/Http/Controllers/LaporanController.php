@@ -1599,17 +1599,17 @@ class LaporanController extends Controller
 
             // Summary data
             $summary = [
-                'total_penjualan' => $penjualanTertinggi->sum('total_harga'),
-                'total_item_terjual' => $penjualanTertinggi->sum('total_item'),
-                'jumlah_transaksi' => $penjualanTertinggi->sum('jumlah_transaksi'),
+                'total_penjualan' => (float) $penjualanTertinggi->sum(function($item){ return is_numeric($item['total_harga'] ?? null) ? $item['total_harga'] : 0; }),
+                'total_item_terjual' => (int) $penjualanTertinggi->sum(function($item){ return is_numeric($item['total_item'] ?? null) ? $item['total_item'] : 0; }),
+                'jumlah_transaksi' => (int) $penjualanTertinggi->sum(function($item){ return is_numeric($item['jumlah_transaksi'] ?? null) ? $item['jumlah_transaksi'] : 0; }),
                 'rata_rata_per_hari' => $penjualanTertinggi->count() > 0 ? 
-                    $penjualanTertinggi->sum('total_harga') / $penjualanTertinggi->count() : 0,
+                    ((float) $penjualanTertinggi->sum(function($item){ return is_numeric($item['total_harga'] ?? null) ? $item['total_harga'] : 0; }) / $penjualanTertinggi->count()) : 0,
                 'periode' => $periode,
                 'periode_text' => 'Laporan Penjualan Tertinggi - ' . $this->getPeriodeText($periode, $tanggalMulai, $tanggalSelesai),
                 'tanggal_mulai' => Carbon::parse($tanggalMulai)->format('d/m/Y'),
                 'tanggal_selesai' => Carbon::parse($tanggalSelesai)->format('d/m/Y'),
                 'jumlah_data' => $penjualanTertinggi->count(),
-                'presentase_data' => round(($penjualanTertinggi->count() / $count) * 100, 1) . '%'
+                'presentase_data' => round(($penjualanTertinggi->count() / max(1, $count)) * 100, 1) . '%'
             ];
 
             // Generate PDF
@@ -1732,17 +1732,17 @@ class LaporanController extends Controller
 
             // Summary data
             $summary = [
-                'total_penjualan' => $penjualanTerendah->sum('total_harga'),
-                'total_item_terjual' => $penjualanTerendah->sum('total_item'),
-                'jumlah_transaksi' => $penjualanTerendah->sum('jumlah_transaksi'),
+                'total_penjualan' => (float) $penjualanTerendah->sum(function($item){ return is_numeric($item['total_harga'] ?? null) ? $item['total_harga'] : 0; }),
+                'total_item_terjual' => (int) $penjualanTerendah->sum(function($item){ return is_numeric($item['total_item'] ?? null) ? $item['total_item'] : 0; }),
+                'jumlah_transaksi' => (int) $penjualanTerendah->sum(function($item){ return is_numeric($item['jumlah_transaksi'] ?? null) ? $item['jumlah_transaksi'] : 0; }),
                 'rata_rata_per_hari' => $penjualanTerendah->count() > 0 ? 
-                    $penjualanTerendah->sum('total_harga') / $penjualanTerendah->count() : 0,
+                    ((float) $penjualanTerendah->sum(function($item){ return is_numeric($item['total_harga'] ?? null) ? $item['total_harga'] : 0; }) / $penjualanTerendah->count()) : 0,
                 'periode' => $periode,
                 'periode_text' => 'Laporan Penjualan Terendah - ' . $this->getPeriodeText($periode, $tanggalMulai, $tanggalSelesai),
                 'tanggal_mulai' => Carbon::parse($tanggalMulai)->format('d/m/Y'),
                 'tanggal_selesai' => Carbon::parse($tanggalSelesai)->format('d/m/Y'),
                 'jumlah_data' => $penjualanTerendah->count(),
-                'presentase_data' => round(($penjualanTerendah->count() / $count) * 100, 1) . '%'
+                'presentase_data' => round(($penjualanTerendah->count() / max(1, $count)) * 100, 1) . '%'
             ];
 
             // Generate PDF
