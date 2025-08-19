@@ -1536,19 +1536,19 @@ class LaporanController extends Controller
 
             // Base query untuk transaksi
             $baseQuery = DB::table('transaksi')
-                ->join('users', 'transaksi.users_id', '=', 'users.id')
+                ->join('users', 'transaksi.user_id', '=', 'users.id')
                 ->join('transaksi_roti', 'transaksi.id', '=', 'transaksi_roti.transaksi_id')
                 ->join('rotis', 'transaksi_roti.roti_id', '=', 'rotis.id')
                 ->whereBetween('transaksi.tanggal_transaksi', [$tanggalMulai, $tanggalSelesai]);
 
             // Filter berdasarkan role
             if ($user->role === 'frontliner') {
-                $baseQuery->where('transaksi.users_id', $user->id);
+                $baseQuery->where('transaksi.user_id', $user->id);
             }
 
             $rawData = $baseQuery->select(
                 'transaksi.tanggal_transaksi',
-                'transaksi.users_id',
+                'transaksi.user_id',
                 'users.name as nama_kasir',
                 'transaksi.total_harga',
                 'transaksi_roti.jumlah'
@@ -1669,19 +1669,19 @@ class LaporanController extends Controller
 
             // Base query untuk transaksi
             $baseQuery = DB::table('transaksi')
-                ->join('users', 'transaksi.users_id', '=', 'users.id')
+                ->join('users', 'transaksi.user_id', '=', 'users.id')
                 ->join('transaksi_roti', 'transaksi.id', '=', 'transaksi_roti.transaksi_id')
                 ->join('rotis', 'transaksi_roti.roti_id', '=', 'rotis.id')
                 ->whereBetween('transaksi.tanggal_transaksi', [$tanggalMulai, $tanggalSelesai]);
 
             // Filter berdasarkan role
             if ($user->role === 'frontliner') {
-                $baseQuery->where('transaksi.users_id', $user->id);
+                $baseQuery->where('transaksi.user_id', $user->id);
             }
 
             $rawData = $baseQuery->select(
                 'transaksi.tanggal_transaksi',
-                'transaksi.users_id',
+                'transaksi.user_id',
                 'users.name as nama_kasir',
                 'transaksi.total_harga',
                 'transaksi_roti.jumlah'
