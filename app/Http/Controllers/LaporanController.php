@@ -20,9 +20,9 @@ class LaporanController extends Controller
             \Log::info('Request data received:', $request->all());
             
             $request->validate([
-                'periode' => 'required|in:harian,mingguan,bulanan,tahunan',
-                'tanggal_mulai' => 'nullable|date',
-                'tanggal_selesai' => 'nullable|date',
+                'periode' => 'required|string',
+                'tanggal_mulai' => 'required|date',
+                'tanggal_selesai' => 'required|date',
             ]);
 
             $periode = $request->periode;
@@ -35,29 +35,6 @@ class LaporanController extends Controller
             $userId = $user->id;
 
             \Log::info("User role: {$userRole}, User ID: {$userId}");
-
-            // Set default tanggal berdasarkan periode
-            if (!$tanggalMulai || !$tanggalSelesai) {
-                switch ($periode) {
-                    case 'harian':
-                        $tanggalMulai = Carbon::today()->toDateString();
-                        $tanggalSelesai = Carbon::today()->toDateString();
-                        break;
-                    case 'mingguan':
-                        $tanggalMulai = Carbon::now()->startOfWeek()->toDateString();
-                        $tanggalSelesai = Carbon::now()->endOfWeek()->toDateString();
-                        break;
-                    case 'bulanan':
-                        $tanggalMulai = Carbon::now()->startOfMonth()->toDateString();
-                        $tanggalSelesai = Carbon::now()->endOfMonth()->toDateString();
-                        break;
-                    case 'tahunan':
-                        $tanggalMulai = Carbon::now()->startOfYear()->toDateString();
-                        $tanggalSelesai = Carbon::now()->endOfYear()->toDateString();
-                        break;
-                }
-            }
-
             \Log::info("Periode: {$periode}, Tanggal: {$tanggalMulai} - {$tanggalSelesai}");
 
             // Query laporan waste dengan struktur database yang benar
@@ -84,20 +61,10 @@ class LaporanController extends Controller
                 ->where('wastes.status', '!=', 9);
 
             // Filter berdasarkan periode tanggal
-            switch ($periode) {
-                case 'harian':
-                    $wasteQuery->whereDate('wastes.created_at', '>=', $tanggalMulai)
-                              ->whereDate('wastes.created_at', '<=', $tanggalSelesai);
-                    break;
-                case 'mingguan':
-                case 'bulanan':
-                case 'tahunan':
-                    $wasteQuery->whereBetween('wastes.created_at', [
-                        $tanggalMulai . ' 00:00:00', 
-                        $tanggalSelesai . ' 23:59:59'
-                    ]);
-                    break;
-            }
+            $wasteQuery->whereBetween('wastes.created_at', [
+                $tanggalMulai . ' 00:00:00', 
+                $tanggalSelesai . ' 23:59:59'
+            ]);
 
             // Filter berdasarkan role dengan struktur yang benar
             if (strtolower($userRole) === 'frontliner') {
@@ -200,9 +167,9 @@ class LaporanController extends Controller
     {
         try {
             $request->validate([
-                'periode' => 'required|in:harian,mingguan,bulanan,tahunan',
-                'tanggal_mulai' => 'nullable|date',
-                'tanggal_selesai' => 'nullable|date',
+                'periode' => 'required|string',
+                'tanggal_mulai' => 'required|date',
+                'tanggal_selesai' => 'required|date',
             ]);
 
             $periode = $request->periode;
@@ -213,28 +180,6 @@ class LaporanController extends Controller
             $user = Auth::user();
             $userRole = $user->role ?? '';
             $userId = $user->id;
-
-            // Set default tanggal berdasarkan periode
-            if (!$tanggalMulai || !$tanggalSelesai) {
-                switch ($periode) {
-                    case 'harian':
-                        $tanggalMulai = Carbon::today()->toDateString();
-                        $tanggalSelesai = Carbon::today()->toDateString();
-                        break;
-                    case 'mingguan':
-                        $tanggalMulai = Carbon::now()->startOfWeek()->toDateString();
-                        $tanggalSelesai = Carbon::now()->endOfWeek()->toDateString();
-                        break;
-                    case 'bulanan':
-                        $tanggalMulai = Carbon::now()->startOfMonth()->toDateString();
-                        $tanggalSelesai = Carbon::now()->endOfMonth()->toDateString();
-                        break;
-                    case 'tahunan':
-                        $tanggalMulai = Carbon::now()->startOfYear()->toDateString();
-                        $tanggalSelesai = Carbon::now()->endOfYear()->toDateString();
-                        break;
-                }
-            }
 
             // Query laporan purchase order dengan struktur database yang benar: pos -> roti_pos -> rotis
             $poQuery = DB::table('pos')
@@ -261,20 +206,10 @@ class LaporanController extends Controller
                 ->where('pos.status', '!=', 9);
 
             // Filter berdasarkan periode tanggal
-            switch ($periode) {
-                case 'harian':
-                    $poQuery->whereDate('pos.tanggal_order', '>=', $tanggalMulai)
-                           ->whereDate('pos.tanggal_order', '<=', $tanggalSelesai);
-                    break;
-                case 'mingguan':
-                case 'bulanan':
-                case 'tahunan':
-                    $poQuery->whereBetween('pos.tanggal_order', [
-                        $tanggalMulai . ' 00:00:00', 
-                        $tanggalSelesai . ' 23:59:59'
-                    ]);
-                    break;
-            }
+            $poQuery->whereBetween('pos.tanggal_order', [
+                $tanggalMulai . ' 00:00:00', 
+                $tanggalSelesai . ' 23:59:59'
+            ]);
 
             // Filter berdasarkan role
             if (strtolower($userRole) === 'kepalatokokios') {
@@ -414,9 +349,9 @@ class LaporanController extends Controller
     public function penjualanReportApi(Request $request)
     {
         $request->validate([
-            'periode' => 'required|in:harian,mingguan,bulanan,tahunan',
-            'tanggal_mulai' => 'nullable|date',
-            'tanggal_selesai' => 'nullable|date',
+            'periode' => 'required|string',
+            'tanggal_mulai' => 'required|date',
+            'tanggal_selesai' => 'required|date',
         ]);
 
         $periode = $request->periode;
@@ -426,29 +361,7 @@ class LaporanController extends Controller
         // Get user info from token
         $user = Auth::user();
         $userRole = $user->role ?? '';
-        $userId = $user->id;
-
-        // Set default tanggal berdasarkan periode
-        if (!$tanggalMulai || !$tanggalSelesai) {
-            switch ($periode) {
-                case 'harian':
-                    $tanggalMulai = Carbon::today()->toDateString();
-                    $tanggalSelesai = Carbon::today()->toDateString();
-                    break;
-                case 'mingguan':
-                    $tanggalMulai = Carbon::now()->startOfWeek()->toDateString();
-                    $tanggalSelesai = Carbon::now()->endOfWeek()->toDateString();
-                    break;
-                case 'bulanan':
-                    $tanggalMulai = Carbon::now()->startOfMonth()->toDateString();
-                    $tanggalSelesai = Carbon::now()->endOfMonth()->toDateString();
-                    break;
-                case 'tahunan':
-                    $tanggalMulai = Carbon::now()->startOfYear()->toDateString();
-                    $tanggalSelesai = Carbon::now()->endOfYear()->toDateString();
-                    break;
-            }
-        }        // Query laporan penjualan dengan struktur database yang benar
+        $userId = $user->id;        // Query laporan penjualan dengan struktur database yang benar
         $penjualanQuery = DB::table('transaksi')
             ->select(
                 'transaksi.id as transaksi_id',
@@ -665,9 +578,9 @@ class LaporanController extends Controller
     {
         try {
             $request->validate([
-                'periode' => 'required|in:harian,mingguan,bulanan,tahunan',
-                'tanggal_mulai' => 'nullable|date',
-                'tanggal_selesai' => 'nullable|date',
+                'periode' => 'required|string',
+                'tanggal_mulai' => 'required|date',
+                'tanggal_selesai' => 'required|date',
                 'token' => 'nullable|string', // Token dari query parameter
             ]);
 
@@ -687,28 +600,6 @@ class LaporanController extends Controller
                 'tanggal_mulai_input' => $tanggalMulai,
                 'tanggal_selesai_input' => $tanggalSelesai,
             ]);
-
-            // Set default tanggal berdasarkan periode jika tidak ada
-            if (!$tanggalMulai || !$tanggalSelesai) {
-                switch ($periode) {
-                    case 'harian':
-                        $tanggalMulai = Carbon::today()->toDateString();
-                        $tanggalSelesai = Carbon::today()->toDateString();
-                        break;
-                    case 'mingguan':
-                        $tanggalMulai = Carbon::now()->startOfWeek()->toDateString();
-                        $tanggalSelesai = Carbon::now()->endOfWeek()->toDateString();
-                        break;
-                    case 'bulanan':
-                        $tanggalMulai = Carbon::now()->startOfMonth()->toDateString();
-                        $tanggalSelesai = Carbon::now()->endOfMonth()->toDateString();
-                        break;
-                    case 'tahunan':
-                        $tanggalMulai = Carbon::now()->startOfYear()->toDateString();
-                        $tanggalSelesai = Carbon::now()->endOfYear()->toDateString();
-                        break;
-                }
-            }
 
             // Debug log after default
             \Log::info('PDF Export Tanggal Final', [
@@ -897,9 +788,9 @@ class LaporanController extends Controller
     {
         try {
             $request->validate([
-                'periode' => 'required|in:harian,mingguan,bulanan,tahunan',
-                'tanggal_mulai' => 'nullable|date',
-                'tanggal_selesai' => 'nullable|date',
+                'periode' => 'required|string',
+                'tanggal_mulai' => 'required|date',
+                'tanggal_selesai' => 'required|date',
                 'token' => 'nullable|string',
             ]);
 
@@ -912,28 +803,6 @@ class LaporanController extends Controller
             $periode = $request->periode;
             $tanggalMulai = $request->tanggal_mulai;
             $tanggalSelesai = $request->tanggal_selesai;
-
-            // Set default tanggal berdasarkan periode jika tidak ada
-            if (!$tanggalMulai || !$tanggalSelesai) {
-                switch ($periode) {
-                    case 'harian':
-                        $tanggalMulai = Carbon::today()->toDateString();
-                        $tanggalSelesai = Carbon::today()->toDateString();
-                        break;
-                    case 'mingguan':
-                        $tanggalMulai = Carbon::now()->startOfWeek()->toDateString();
-                        $tanggalSelesai = Carbon::now()->endOfWeek()->toDateString();
-                        break;
-                    case 'bulanan':
-                        $tanggalMulai = Carbon::now()->startOfMonth()->toDateString();
-                        $tanggalSelesai = Carbon::now()->endOfMonth()->toDateString();
-                        break;
-                    case 'tahunan':
-                        $tanggalMulai = Carbon::now()->startOfYear()->toDateString();
-                        $tanggalSelesai = Carbon::now()->endOfYear()->toDateString();
-                        break;
-                }
-            }
 
             // Query laporan waste dengan struktur database yang benar
             $wasteQuery = DB::table('wastes')
@@ -1059,9 +928,9 @@ class LaporanController extends Controller
     {
         try {
             $request->validate([
-                'periode' => 'required|in:harian,mingguan,bulanan',
-                'tanggal_mulai' => 'nullable|date',
-                'tanggal_selesai' => 'nullable|date',
+                'periode' => 'required|string',
+                'tanggal_mulai' => 'required|date',
+                'tanggal_selesai' => 'required|date',
                 'token' => 'nullable|string',
             ]);
 
@@ -1074,24 +943,6 @@ class LaporanController extends Controller
             $periode = $request->periode;
             $tanggalMulai = $request->tanggal_mulai;
             $tanggalSelesai = $request->tanggal_selesai;
-
-            // Set default tanggal berdasarkan periode jika tidak ada
-            if (!$tanggalMulai || !$tanggalSelesai) {
-                switch ($periode) {
-                    case 'harian':
-                        $tanggalMulai = Carbon::today()->toDateString();
-                        $tanggalSelesai = Carbon::today()->toDateString();
-                        break;
-                    case 'mingguan':
-                        $tanggalMulai = Carbon::now()->startOfWeek()->toDateString();
-                        $tanggalSelesai = Carbon::now()->endOfWeek()->toDateString();
-                        break;
-                    case 'bulanan':
-                        $tanggalMulai = Carbon::now()->startOfMonth()->toDateString();
-                        $tanggalSelesai = Carbon::now()->endOfMonth()->toDateString();
-                        break;
-                }
-            }
 
             // Query laporan purchase order dengan struktur yang benar
             $poQuery = DB::table('pos')
@@ -1210,9 +1061,9 @@ class LaporanController extends Controller
     {
         try {
             $request->validate([
-                'periode' => 'required|in:harian,mingguan,bulanan',
-                'tanggal_mulai' => 'nullable|date',
-                'tanggal_selesai' => 'nullable|date',
+                'periode' => 'required|string',
+                'tanggal_mulai' => 'required|date',
+                'tanggal_selesai' => 'required|date',
             ]);
 
             $periode = $request->periode;
@@ -1223,24 +1074,6 @@ class LaporanController extends Controller
             $user = Auth::user();
             $userRole = $user->role ?? '';
             $userId = $user->id;
-
-            // Set default tanggal berdasarkan periode
-            if (!$tanggalMulai || !$tanggalSelesai) {
-                switch ($periode) {
-                    case 'harian':
-                        $tanggalMulai = Carbon::today()->toDateString();
-                        $tanggalSelesai = Carbon::today()->toDateString();
-                        break;
-                    case 'mingguan':
-                        $tanggalMulai = Carbon::now()->startOfWeek()->toDateString();
-                        $tanggalSelesai = Carbon::now()->endOfWeek()->toDateString();
-                        break;
-                    case 'bulanan':
-                        $tanggalMulai = Carbon::now()->startOfMonth()->toDateString();
-                        $tanggalSelesai = Carbon::now()->endOfMonth()->toDateString();
-                        break;
-                }
-            }
 
             // Query stok history dengan filtering berdasarkan role
             $stokQuery = DB::table('stok_history')
@@ -1341,9 +1174,9 @@ class LaporanController extends Controller
     {
         try {
             $request->validate([
-                'periode' => 'required|in:harian,mingguan,bulanan',
-                'tanggal_mulai' => 'nullable|date',
-                'tanggal_selesai' => 'nullable|date',
+                'periode' => 'required|string',
+                'tanggal_mulai' => 'required|date',
+                'tanggal_selesai' => 'required|date',
                 'token' => 'nullable|string',
             ]);
 
@@ -1356,24 +1189,6 @@ class LaporanController extends Controller
             $periode = $request->periode;
             $tanggalMulai = $request->tanggal_mulai;
             $tanggalSelesai = $request->tanggal_selesai;
-
-            // Set default tanggal berdasarkan periode jika tidak ada
-            if (!$tanggalMulai || !$tanggalSelesai) {
-                switch ($periode) {
-                    case 'harian':
-                        $tanggalMulai = Carbon::today()->toDateString();
-                        $tanggalSelesai = Carbon::today()->toDateString();
-                        break;
-                    case 'mingguan':
-                        $tanggalMulai = Carbon::now()->startOfWeek()->toDateString();
-                        $tanggalSelesai = Carbon::now()->endOfWeek()->toDateString();
-                        break;
-                    case 'bulanan':
-                        $tanggalMulai = Carbon::now()->startOfMonth()->toDateString();
-                        $tanggalSelesai = Carbon::now()->endOfMonth()->toDateString();
-                        break;
-                }
-            }
 
             // Query laporan stok
             $stokQuery = DB::table('stok_history')
