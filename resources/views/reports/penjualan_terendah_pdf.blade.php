@@ -234,10 +234,10 @@
                 </td>
                 <td class="text-center">{{ date('d/m/Y', strtotime($penjualan['tanggal_transaksi'])) }}</td>
                 <td>{{ $penjualan['nama_kasir'] }}</td>
-                <td class="text-center">{{ number_format($penjualan['jumlah_transaksi']) }}</td>
-                <td class="text-center">{{ number_format($penjualan['total_item']) }}</td>
-                <td class="text-right currency">Rp {{ number_format($penjualan['total_harga'], 0, ',', '.') }}</td>
-                <td class="text-right currency">Rp {{ number_format($penjualan['rata_rata_transaksi'], 0, ',', '.') }}</td>
+                <td class="text-center">{{ is_numeric($penjualan['jumlah_transaksi']) ? number_format($penjualan['jumlah_transaksi']) : 0 }}</td>
+                <td class="text-center">{{ is_numeric($penjualan['total_item']) ? number_format($penjualan['total_item']) : 0 }}</td>
+                <td class="text-right currency">Rp {{ is_numeric($penjualan['total_harga']) ? number_format($penjualan['total_harga'], 0, ',', '.') : 0 }}</td>
+                <td class="text-right currency">Rp {{ is_numeric($penjualan['rata_rata_transaksi']) ? number_format($penjualan['rata_rata_transaksi'], 0, ',', '.') : 0 }}</td>
                 <td class="text-center">
                     @if($index < 3)
                         🔴 KRITIS
