@@ -176,27 +176,27 @@
         <div class="summary-grid">
             <div class="summary-item">
                 <span class="summary-label">Total Hari Produktif:</span>
-                <span class="summary-value">{{ number_format($summary['jumlah_data']) }} hari</span>
+                <span class="summary-value">{{ is_numeric($summary['jumlah_data']) ? number_format($summary['jumlah_data']) : 0 }} hari</span>
             </div>
             <div class="summary-item">
                 <span class="summary-label">Total Transaksi:</span>
-                <span class="summary-value">{{ number_format($summary['jumlah_transaksi']) }}</span>
+                <span class="summary-value">{{ is_numeric($summary['jumlah_transaksi']) ? number_format($summary['jumlah_transaksi']) : 0 }}</span>
             </div>
             <div class="summary-item">
                 <span class="summary-label">Total Item Terjual:</span>
-                <span class="summary-value">{{ number_format($summary['total_item_terjual']) }}</span>
+                <span class="summary-value">{{ is_numeric($summary['total_item_terjual']) ? number_format($summary['total_item_terjual']) : 0 }}</span>
             </div>
             <div class="summary-item">
                 <span class="summary-label">Total Penjualan:</span>
-                <span class="summary-value currency">Rp {{ number_format($summary['total_penjualan'], 0, ',', '.') }}</span>
+                <span class="summary-value currency">Rp {{ is_numeric($summary['total_penjualan']) ? number_format($summary['total_penjualan'], 0, ',', '.') : 0 }}</span>
             </div>
             <div class="summary-item">
                 <span class="summary-label">Rata-rata per Hari:</span>
-                <span class="summary-value currency">Rp {{ number_format($summary['rata_rata_per_hari'], 0, ',', '.') }}</span>
+                <span class="summary-value currency">Rp {{ is_numeric($summary['rata_rata_per_hari']) ? number_format($summary['rata_rata_per_hari'], 0, ',', '.') : 0 }}</span>
             </div>
             <div class="summary-item">
                 <span class="summary-label">Presentase Data:</span>
-                <span class="summary-value">{{ $summary['presentase_data'] }}</span>
+                <span class="summary-value">{{ $summary['presentase_data'] ?? '0%' }}</span>
             </div>
         </div>
     </div>
@@ -227,10 +227,10 @@
                 </td>
                 <td class="text-center">{{ date('d/m/Y', strtotime($penjualan['tanggal_transaksi'])) }}</td>
                 <td>{{ $penjualan['nama_kasir'] }}</td>
-                <td class="text-center">{{ number_format($penjualan['jumlah_transaksi']) }}</td>
-                <td class="text-center">{{ number_format($penjualan['total_item']) }}</td>
-                <td class="text-right currency">Rp {{ number_format($penjualan['total_harga'], 0, ',', '.') }}</td>
-                <td class="text-right currency">Rp {{ number_format($penjualan['rata_rata_transaksi'], 0, ',', '.') }}</td>
+                <td class="text-center">{{ is_numeric($penjualan['jumlah_transaksi']) ? number_format($penjualan['jumlah_transaksi']) : 0 }}</td>
+                <td class="text-center">{{ is_numeric($penjualan['total_item']) ? number_format($penjualan['total_item']) : 0 }}</td>
+                <td class="text-right currency">Rp {{ is_numeric($penjualan['total_harga']) ? number_format($penjualan['total_harga'], 0, ',', '.') : 0 }}</td>
+                <td class="text-right currency">Rp {{ is_numeric($penjualan['rata_rata_transaksi']) ? number_format($penjualan['rata_rata_transaksi'], 0, ',', '.') : 0 }}</td>
                 <td class="text-center">
                     @if($index == 0)
                         🥇 TERBAIK
@@ -248,10 +248,10 @@
         <tfoot>
             <tr class="total-row">
                 <td colspan="3" class="text-right"><strong>TOTAL</strong></td>
-                <td class="text-center"><strong>{{ number_format($summary['jumlah_transaksi']) }}</strong></td>
-                <td class="text-center"><strong>{{ number_format($summary['total_item_terjual']) }}</strong></td>
-                <td class="text-right"><strong class="currency">Rp {{ number_format($summary['total_penjualan'], 0, ',', '.') }}</strong></td>
-                <td class="text-right"><strong class="currency">Rp {{ number_format($summary['rata_rata_per_hari'], 0, ',', '.') }}</strong></td>
+                <td class="text-center"><strong>{{ is_numeric($summary['jumlah_transaksi']) ? number_format($summary['jumlah_transaksi']) : 0 }}</strong></td>
+                <td class="text-center"><strong>{{ is_numeric($summary['total_item_terjual']) ? number_format($summary['total_item_terjual']) : 0 }}</strong></td>
+                <td class="text-right"><strong class="currency">Rp {{ is_numeric($summary['total_penjualan']) ? number_format($summary['total_penjualan'], 0, ',', '.') : 0 }}</strong></td>
+                <td class="text-right"><strong class="currency">Rp {{ is_numeric($summary['rata_rata_per_hari']) ? number_format($summary['rata_rata_per_hari'], 0, ',', '.') : 0 }}</strong></td>
                 <td class="text-center">-</td>
             </tr>
         </tfoot>
