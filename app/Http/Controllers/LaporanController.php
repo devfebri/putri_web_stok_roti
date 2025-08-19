@@ -1669,7 +1669,7 @@ class LaporanController extends Controller
             ];
 
             // Generate PDF
-            $pdf = Pdf::loadView('reports.penjualan_pdf', [
+            $pdf = Pdf::loadView('reports.penjualan_tertinggi_pdf', [
                 'penjualan_list' => $transaksiGrouped,
                 'summary' => $summary,
             ]);
