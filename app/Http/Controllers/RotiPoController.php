@@ -300,6 +300,17 @@ class RotiPoController extends Controller
             
             $pos->status = $newStatus;
             $pos->save();
+            if($newStatus==4){
+                foreach ($pos->rotiPos as $rotiPo) {
+                    $stokHistory = new StokHistory();
+                    $stokHistory->roti_id = $rotiPo->roti_id;
+                    $stokHistory->stok = $rotiPo->jumlah_po;
+                    $stokHistory->stok_awal = $rotiPo->jumlah_po;
+                    $stokHistory->kepalatokokios_id = $pos->user_id;
+                    $stokHistory->tanggal = Carbon::now();
+                    $stokHistory->save();
+                }
+            }
 
             $statusLabels = [
                 0 => 'Pending',
