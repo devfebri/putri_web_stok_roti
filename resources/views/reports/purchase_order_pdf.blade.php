@@ -157,6 +157,7 @@
             <tr>
                 <th class="text-center" style="width: 5%;">No</th>
                 <th style="width: 12%;">Kode PO</th>
+                <th style="width: 12%;">Nama Toko</th>
                 <th style="width: 25%;">Produk</th>
                 <th class="text-center" style="width: 8%;">Qty</th>
                 <th class="text-right" style="width: 12%;">Harga</th>
@@ -170,6 +171,7 @@
             <tr>
                 <td class="text-center">{{ $index + 1 }}</td>
                 <td>{{ $po->kode_po ?? 'N/A' }}</td>
+                <td>{{ $po->user_name ?? 'N/A' }}</td>
                 <td>{{ $po->nama_roti ?? 'N/A' }}
                     @if($po->rasa_roti)
                         <br><small style="color: #666;">{{ $po->rasa_roti }}</small>
@@ -179,12 +181,18 @@
                 <td class="text-right">Rp {{ number_format($po->harga_roti, 0, ',', '.') }}</td>
                 <td class="text-right currency">Rp {{ number_format($po->total_nilai, 0, ',', '.') }}</td>
                 <td class="text-center">
+                    
+
                     @if($po->po_status == 0)
                         <span class="status-pending">PENDING</span>
                     @elseif($po->po_status == 1)
-                        <span class="status-delivery">DELIVERY</span>
+                        <span class="status-delivery">Proses</span>
                     @elseif($po->po_status == 2)
-                        <span class="status-selesai">SELESAI</span>
+                        <span class="status-selesai">Ditolak</span>
+                    @elseif($po->po_status == 3)
+                        <span class="status-selesai">Delivery</span>
+                    @elseif($po->po_status == 4)
+                        <span class="status-selesai">Selesai</span>
                     @else
                         <span>UNKNOWN</span>
                     @endif
