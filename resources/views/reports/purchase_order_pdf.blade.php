@@ -203,7 +203,7 @@
         </tbody>
         <tfoot>
             <tr class="total-row">
-                <td colspan="3" class="text-right"><strong>TOTAL</strong></td>
+                <td colspan="4" class="text-right"><strong>TOTAL</strong></td>
                 <td class="text-center"><strong>{{ number_format($po_list->sum('jumlah_po')) }}</strong></td>
                 <td class="text-right">-</td>
                 <td class="text-right"><strong class="currency">Rp {{ number_format($po_list->sum('total_nilai'), 0, ',', '.') }}</strong></td>
