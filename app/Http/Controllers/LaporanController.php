@@ -405,13 +405,20 @@ class LaporanController extends Controller
                 'tanggal_transaksi' => $firstItem->tanggal_transaksi,
                 'created_at' => $firstItem->created_at,
                 'user' => [
+                    'id' => $firstItem->user_id,
                     'name' => $firstItem->user_name
                 ],
+                'user_id' => $firstItem->user_id,
+                'nama_user' => $firstItem->user_name,
+                'total_item' => $group->sum('jumlah'),
                 'transaksi_roti' => $group->map(function($item) {
                     return [
                         'id' => $item->item_id,
                         'jumlah' => $item->jumlah,
                         'harga_satuan' => $item->harga_satuan,
+                        'total_nilai_item' => $item->total_nilai_item,
+                        'nama_roti' => $item->nama_roti,
+                        'rasa_roti' => $item->rasa_roti,
                         'roti' => [
                             'nama_roti' => $item->nama_roti,
                             'rasa_roti' => $item->rasa_roti,
@@ -530,13 +537,20 @@ class LaporanController extends Controller
                 'tanggal_transaksi' => $firstItem->tanggal_transaksi,
                 'created_at' => $firstItem->created_at,
                 'user' => [
+                    'id' => $firstItem->user_id,
                     'name' => $firstItem->user_name
                 ],
+                'user_id' => $firstItem->user_id,
+                'nama_user' => $firstItem->user_name,
+                'total_item' => $group->sum('jumlah'),
                 'transaksi_roti' => $group->map(function($item) {
                     return [
                         'id' => $item->item_id,
                         'jumlah' => $item->jumlah,
                         'harga_satuan' => $item->harga_satuan,
+                        'total_nilai_item' => $item->total_nilai_item,
+                        'nama_roti' => $item->nama_roti,
+                        'rasa_roti' => $item->rasa_roti,
                         'roti' => [
                             'nama_roti' => $item->nama_roti,
                             'rasa_roti' => $item->rasa_roti,
@@ -646,13 +660,20 @@ class LaporanController extends Controller
                 'tanggal_transaksi' => $firstItem->tanggal_transaksi,
                 'created_at' => $firstItem->created_at,
                 'user' => [
+                    'id' => $firstItem->user_id,
                     'name' => $firstItem->user_name
                 ],
+                'user_id' => $firstItem->user_id,
+                'nama_user' => $firstItem->user_name,
+                'total_item' => $group->sum('jumlah'),
                 'transaksi_roti' => $group->map(function($item) {
                     return [
                         'id' => $item->item_id,
                         'jumlah' => $item->jumlah,
                         'harga_satuan' => $item->harga_satuan,
+                        'total_nilai_item' => $item->total_nilai_item,
+                        'nama_roti' => $item->nama_roti,
+                        'rasa_roti' => $item->rasa_roti,
                         'roti' => [
                             'nama_roti' => $item->nama_roti,
                             'rasa_roti' => $item->rasa_roti,

@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Penjualan API</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; font-weight: bold; }
+        .produk { max-width: 200px; word-wrap: break-word; }
+        .loading { text-align: center; margin: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Test Laporan Penjualan</h1>
+        <div id="loading" class="loading">Loading...</div>
+        <div id="result"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000/api';
+        
+        async function testPenjualanAPI() {
+            try {
+                const response = await fetch(`${API_BASE}/penjualan-report`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        periode: 'harian',
+                        tanggal_mulai: '2025-09-01',
+                        tanggal_selesai: '2025-09-01'
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                displayResults(data);
+            } catch (error) {
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('result').innerHTML = `
+                    <div style="color: red;">
+                        <h3>Error:</h3>
+                        <p>${error.message}</p>
+                        <p>Make sure Laravel server is running on localhost:8000</p>
+                    </div>
+                `;
+            }
+        }
+
+        function displayResults(data) {
+            document.getElementById('loading').style.display = 'none';
+            
+            if (!data.status || !data.data) {
+                document.getElementById('result').innerHTML = '<p>No data received</p>';
+                return;
+            }
+
+            const { summary, penjualan_list } = data.data;
+            
+            let html = `
+                <h2>Summary</h2>
+                <ul>
+                    <li>Total Penjualan: Rp ${(summary.total_penjualan || 0).toLocaleString()}</li>
+                    <li>Total Item Terjual: ${summary.total_item_terjual || 0}</li>
+                    <li>Jumlah Transaksi: ${summary.jumlah_transaksi || 0}</li>
+                    <li>Rata-rata per Transaksi: Rp ${(summary.rata_rata_per_transaksi || 0).toLocaleString()}</li>
+                </ul>
+
+                <h2>Detail Transaksi</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>No</th>
+                            <th>Kode Transaksi</th>
+                            <th>Customer</th>
+                            <th>Total Item</th>
+                            <th>Tanggal</th>
+                            <th>Kasir</th>
+                            <th>Produk</th>
+                            <th>Total Harga</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            penjualan_list.forEach((transaksi, index) => {
+                const produkList = transaksi.transaksi_roti.map(item => {
+                    const namaRoti = item.nama_roti || item.roti?.nama_roti || 'Produk';
+                    const rasaRoti = item.rasa_roti || item.roti?.rasa_roti || '';
+                    const jumlah = item.jumlah || 0;
+                    return `${namaRoti}${rasaRoti ? ` (${rasaRoti})` : ''} x${jumlah}`;
+                }).join('<br>');
+
+                html += `
+                    <tr>
+                        <td>${index + 1}</td>
+                        <td>${transaksi.kode_transaksi || 'N/A'}</td>
+                        <td>${transaksi.nama_customer || 'Customer'}</td>
+                        <td>${transaksi.total_item || 0} item</td>
+                        <td>${new Date(transaksi.tanggal_transaksi).toLocaleDateString()}</td>
+                        <td>${transaksi.user?.name || transaksi.nama_user || 'N/A'}</td>
+                        <td class="produk">${produkList || 'N/A'}</td>
+                        <td>Rp ${(parseInt(transaksi.total_harga) || 0).toLocaleString()}</td>
+                    </tr>
+                `;
+            });
+
+            html += `
+                    </tbody>
+                </table>
+            `;
+
+            document.getElementById('result').innerHTML = html;
+        }
+
+        // Test API when page loads
+        testPenjualanAPI();
+    </script>
+</body>
+</html>
