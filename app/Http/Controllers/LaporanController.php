@@ -371,6 +371,7 @@ class LaporanController extends Controller
                 'transaksi.metode_pembayaran',
                 'transaksi.tanggal_transaksi',
                 'transaksi.created_at',
+                'transaksi.user_id',
                 'users.name as user_name',
                 'transaksi_roti.id as item_id',
                 'transaksi_roti.jumlah',
