@@ -890,7 +890,6 @@ Route::prefix('admin')->middleware(['auth:sanctum', AdminMiddleware::class])->na
     Route::get('/laporan/purchase-order', [LaporanController::class, 'purchaseOrderReportApi'])->name('laporan_po'); // Laporan PO
     Route::get('/laporan/purchase-order/pdf', [LaporanController::class, 'purchaseOrderPdfExport'])->name('laporan_po_pdf'); // Export PDF PO
     Route::get('/laporan/penjualan', [LaporanController::class, 'penjualanReportApi'])->name('laporan_penjualan'); // Laporan penjualan
-    Route::post('/laporan/penjualan', [LaporanController::class, 'penjualanReportApi'])->name('laporan_penjualan_post'); // Laporan penjualan POST
     Route::get('/laporan/penjualan/pdf', [LaporanController::class, 'penjualanPdfExport'])->name('laporan_penjualan_pdf'); // Export PDF penjualan
     Route::get('/laporan/penjualan-tertinggi', [LaporanController::class, 'penjualanTertinggiReportApi'])->name('laporan_penjualan_tertinggi'); // Laporan penjualan tertinggi
     Route::get('/laporan/penjualan-tertinggi/pdf', [LaporanController::class, 'penjualanTertinggiPdf'])->name('laporan_penjualan_tertinggi_pdf'); // Export PDF penjualan tertinggi
@@ -909,7 +908,6 @@ Route::prefix('pimpinan')->middleware(['auth:sanctum', PimpinanMiddleware::class
     Route::get('/laporan/purchase-order', [LaporanController::class, 'purchaseOrderReportApi'])->name('laporan_po'); // Laporan PO
     Route::get('/laporan/purchase-order/pdf', [LaporanController::class, 'purchaseOrderPdfExport'])->name('laporan_po_pdf'); // Export PDF PO
     Route::get('/laporan/penjualan', [LaporanController::class, 'penjualanReportApi'])->name('laporan_penjualan'); // Laporan penjualan
-    Route::post('/laporan/penjualan', [LaporanController::class, 'penjualanReportApi'])->name('laporan_penjualan_post'); // Laporan penjualan POST
     Route::get('/laporan/penjualan/pdf', [LaporanController::class, 'penjualanPdfExport'])->name('laporan_penjualan_pdf'); // Export PDF penjualan
     Route::get('/laporan/penjualan-tertinggi', [LaporanController::class, 'penjualanTertinggiReportApi'])->name('laporan_penjualan_tertinggi'); // Laporan penjualan tertinggi
     Route::get('/laporan/penjualan-tertinggi/pdf', [LaporanController::class, 'penjualanTertinggiPdf'])->name('laporan_penjualan_tertinggi_pdf'); // Export PDF penjualan tertinggi
@@ -989,7 +987,6 @@ Route::prefix('kepalatokokios')->middleware(['auth:sanctum', KepalaTokoKiosMiddl
     Route::get('/laporan/purchase-order', [LaporanController::class, 'purchaseOrderReportApi'])->name('laporan_po'); // Laporan PO
     Route::get('/laporan/purchase-order/pdf', [LaporanController::class, 'purchaseOrderPdfExport'])->name('laporan_po_pdf'); // Export PDF PO
     Route::get('/laporan/penjualan', [LaporanController::class, 'penjualanReportApi'])->name('laporan_penjualan'); // Laporan penjualan
-    Route::post('/laporan/penjualan', [LaporanController::class, 'penjualanReportApi'])->name('laporan_penjualan_post'); // Laporan penjualan POST
     Route::get('/laporan/penjualan/pdf', [LaporanController::class, 'penjualanPdfExport'])->name('laporan_penjualan_pdf'); // Export PDF penjualan
     Route::get('/laporan/penjualan-tertinggi', [LaporanController::class, 'penjualanTertinggiReportApi'])->name('laporan_penjualan_tertinggi'); // Laporan penjualan tertinggi
     Route::get('/laporan/penjualan-tertinggi/pdf', [LaporanController::class, 'penjualanTertinggiPdf'])->name('laporan_penjualan_tertinggi_pdf'); // Export PDF penjualan tertinggi
